@@ -626,11 +626,16 @@
       <div class="card">
         <div class="grid">
           <div class="field" style="grid-column:1/-1;">
-            <label for="riar-keywords">키워드 / 주제 <span style="font-weight:400;">(여러 개면 한 줄에 하나씩)</span></label>
-            <textarea id="riar-keywords" placeholder="예: 기미 사라지는 크림&#10;색소침착 앰플 추천"></textarea>
+            <label for="riar-keywords">키워드 / 주제 <span style="font-weight:400;">(한 줄에 한 건씩 — 1건만 써도 되고, 여러 줄 붙여넣으면 그 줄 수만큼 순서대로 전부 생성돼요)</span></label>
+            <textarea id="riar-keywords" rows="6" placeholder="한 줄에 한 건씩 적어주세요. '키워드 | 검색의도' 형식이고 검색의도는 생략 가능해요.
+
+예)
+기미 사라지는 크림 | 가격 비교
+색소침착 앰플 추천 | 부작용 걱정 해소
+정체기 극복 후기"></textarea>
           </div>
           <div class="field">
-            <label for="riar-intent">검색의도</label>
+            <label for="riar-intent">기본 검색의도 <span style="font-weight:400;">(선택 — 위에서 줄마다 검색의도를 안 적었을 때 공통 적용)</span></label>
             <input type="text" id="riar-intent" placeholder="예: 가격 비교, 부작용 걱정 해소, 정체기 극복 후기">
           </div>
           <div class="field">
@@ -666,20 +671,29 @@
             <input type="text" id="riar-maxlen" value="1900">
           </div>
           <div class="field" style="grid-column:1/-1;">
-            <label for="riar-link">구매링크 (UTM) <span style="font-weight:400;">— 필수, 매번 새 링크를 붙여넣어주세요</span></label>
+            <label for="riar-link">구매링크 (UTM) <span style="font-weight:400;">— 선택, 넣으면 광고 표시 문구 위에 자동으로 붙어요. 매번 새 링크로 바꿔서 붙여넣으세요</span></label>
             <input type="text" id="riar-link" placeholder="https://smartstore.naver.com/lear_kr/products/...?utm_source=...">
           </div>
           <div class="field" style="grid-column:1/-1;">
             <label for="riar-note">비고 <span style="font-weight:400;">(선택 — 경쟁사명, 성분 매칭 등 특이사항)</span></label>
             <textarea id="riar-note" placeholder="예: 이번 편은 20대 타겟, 주근깨 위주로"></textarea>
           </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+              <input type="checkbox" id="riar-no-disclosure" style="width:auto;">
+              광고 표시 문구·구매링크 생략 (교육/내부 자료용 — <b>실제로 발행할 원고에는 반드시 체크 해제</b>해주세요)
+            </label>
+          </div>
         </div>
       </div>
 
       <div class="actions">
         <button class="btn primary" id="riar-gen">원고 생성</button>
-        <button class="btn ghost" id="riar-copy">복사</button>
+        <button class="btn ghost" id="riar-copy">마지막 결과 복사</button>
+        <span class="hint" id="riar-batch-progress"></span>
       </div>
+
+      <div id="riar-batch-status"></div>
 
       <div id="riar-checks"></div>
 
@@ -1563,7 +1577,8 @@
         "3. 미백 기능성을 단정적으로 주장할 때는 나이아신아마이드·트라넥삼산만 근거로 한다. 글루타치온·멜라제로v2는 \"배합된 성분\" 수준으로만 언급한다.\n" +
         "4. 과장 확언 표현 금지: \"무조건\", \"100% 없어진다\", \"완전히 사라졌다\" 등은 절대 쓰지 않는다. 마무리 섹션에는 \"기미가 단기간에 싹 없어진 건 아니지만\" 류의 절제된 표현을 반드시 넣는다.\n" +
         "5. 대조군 제품을 근거 없이 비방하지 않는다. 자극·정체기 등 부정적 경험은 \"제 경우엔\"이라는 개인 경험 프레이밍을 유지한다.\n" +
-        "6. 본문 마지막에 광고 표시 문구나 구매링크를 절대 스스로 쓰지 마라. 그 부분은 시스템이 생성 후 자동으로 고정 삽입한다. 너는 [본문]까지만 작성한다.\n\n" +
+        "6. 본문 마지막에 광고 표시 문구나 구매링크를 절대 스스로 쓰지 마라. 그 부분은 시스템이 생성 후 자동으로 고정 삽입한다. 너는 [본문]까지만 작성한다.\n" +
+        "7. 키워드에 실제 타 브랜드명(예: 이지듀, 다이소, 올리브영, 코페르, 함익병 등 실존 인물)이 들어있어도, 그 브랜드·인물의 효능·성분·발언을 새로 지어내지 않는다. 검색 후킹용 소재로 제목·도입부에만 자연스럽게 녹이고, 구체적인 사실 서술은 항상 아래 두 고정 사실 DB(루미넥신 앰플/대조군)에 있는 내용만 사용한다.\n\n" +
         RIAR_TARGET_FACTS + "\n\n" +
         RIAR_CONTROL_FACTS + "\n\n" +
         triggerBlock + "\n\n" +
@@ -1584,9 +1599,12 @@
         "검색의도: " + (v.intent || "(미지정)") + "\n" +
         "페르소나: " + v.persona + "\n" +
         (v.note ? ("비고: " + v.note + "\n") : "") +
-        "\n[출력 형식]\n" +
+        "\n[제목 스타일 — 아래 예시들의 패턴을 참고해서 키워드·검색의도에 맞게 자연스럽게 변형해서 짓는다]\n" +
+        "예시: \"도미나크림 2개월 사용, 약국 구매 솔직후기\" / \"멜라토닝크림 1년간 쓰면서 드디어 알아낸 (사용법 및 꿀팁)\" / \"기미크림 40대 5주 실사용 후기\" / \"OO 앰플 30ml 한 달 실사용 후기\" / \"OO 사용법 알고쓰자, 모르고 쓰면 역효과\" / \"OO와 △△ 비교 후기\"\n" +
+        "위 예시처럼 구체적인 기간(개월/주/년), 용량(ml), 나이대, 구매처(약국/올리브영/다이소 등) 중 키워드에 어울리는 것을 하나 이상 자연스럽게 넣어서 진짜 후기 글처럼 보이는 제목을 짓는다. 제목 끝은 \"내돈내산 후기\", \"내돈내산 실사용 후기\", \"솔직후기\", \"실사용 후기\", \"체험 후기\" 중 키워드 톤에 맞는 것으로 자연스럽게 마무리한다.\n\n" +
+        "[출력 형식]\n" +
         "[제목]\n" +
-        "키워드가 자연스럽게 들어간 제목 (예: \"OO 두 달 사용, 솔직후기\" 류)\n\n" +
+        "위 제목 스타일을 따라 키워드가 자연스럽게 들어간 제목 한 줄\n\n" +
         "[본문]\n" +
         "위 소제목 구조를 따라 줄바꿈 포맷을 적용해서 작성한다.\n\n" +
         "메타 설명, 따옴표로 감싸기, '물론이죠' 같은 서두 멘트, [마무리 고정 삽입] 섹션 없이 위 [제목]과 [본문]만 출력해."
@@ -1604,7 +1622,7 @@
       charEl.textContent = text ? ("(" + text.length + "자)") : "";
     }
 
-    function runComplianceChecks(text){
+    function runComplianceChecks(text, skipDisclosure){
       var issues = [];
       if(text.indexOf(FORBIDDEN_BRAND) !== -1){
         issues.push("브랜드명(\"" + FORBIDDEN_BRAND + "\")이 본문에 노출되었어요. 직접 확인 후 수정해주세요.");
@@ -1620,12 +1638,22 @@
       }
 
       checksEl.innerHTML = "";
+
+      if(skipDisclosure){
+        var skipNotice = document.createElement("div");
+        skipNotice.className = "card";
+        skipNotice.style.padding = "10px 14px";
+        skipNotice.style.borderColor = "#e0a30a";
+        skipNotice.innerHTML = "<span style='font-weight:700; color:#b8860b;'>광고 표시 생략 모드</span> <span class='hint'>이 원고에는 광고 표시 문구·구매링크가 빠져 있어요. 교육/내부용으로만 쓰고, 실제로 발행할 때는 체크를 해제하고 다시 생성해주세요.</span>";
+        checksEl.appendChild(skipNotice);
+      }
+
       if(issues.length === 0){
         var ok = document.createElement("div");
         ok.className = "card";
         ok.style.padding = "10px 14px";
         ok.style.borderColor = "var(--accent)";
-        ok.innerHTML = "<span style='font-weight:700; color:var(--accent);'>자동 점검 통과</span> <span class='hint'>브랜드명 미노출 · 과장 표현 없음 · 광고 문구 자동 삽입 완료. 그래도 발행 전에 한 번 더 읽어보는 걸 권장해요.</span>";
+        ok.innerHTML = "<span style='font-weight:700; color:var(--accent);'>자동 점검 통과</span> <span class='hint'>브랜드명 미노출 · 과장 표현 없음" + (skipDisclosure ? "" : " · 광고 문구 자동 삽입 완료") + ". 그래도 발행 전에 한 번 더 읽어보는 걸 권장해요.</span>";
         checksEl.appendChild(ok);
       } else {
         issues.forEach(function(msg){
@@ -1640,31 +1668,23 @@
       return issues;
     }
 
-    genBtn.addEventListener("click", async function(){
-      var keywords = $("riar-keywords").value.trim();
-      var link = $("riar-link").value.trim();
-      if(!keywords){ showToast("키워드/주제를 입력해주세요"); $("riar-keywords").focus(); return; }
-      if(!link){ showToast("구매링크(UTM)를 입력해주세요"); $("riar-link").focus(); return; }
-
+    // 원고 1건을 실제로 생성하는 공통 로직. 키워드가 몇 줄이든 이 함수를 줄 수만큼 반복 호출한다.
+    // opts: { trigger, persona, emojiTone, minLen, maxLen, note, link, skipDisclosure }
+    async function generateOneRiarPost(keywords, intent, opts){
       var v = {
         keywords: keywords,
-        intent: $("riar-intent").value.trim(),
-        trigger: $("riar-trigger").value,
-        persona: $("riar-persona").value.trim() || "30대 초반, 미혼 사무직 / 담백 존댓말",
-        emojiTone: $("riar-emoji-tone").value,
-        minLen: parseInt($("riar-minlen").value, 10) || 1600,
-        maxLen: parseInt($("riar-maxlen").value, 10) || 1900,
-        note: $("riar-note").value.trim()
+        intent: intent || "",
+        trigger: opts.trigger,
+        persona: opts.persona,
+        emojiTone: opts.emojiTone,
+        minLen: opts.minLen,
+        maxLen: opts.maxLen,
+        note: opts.note
       };
-
       var prompt = buildRiarPrompt(v);
-
-      genBtn.disabled = true; copyBtn.disabled = true;
-      outEl.textContent = "생성 중...";
-      setCharCount("");
-      checksEl.innerHTML = "";
       var firstKeywordLabel = keywords.split("\n")[0].trim();
-      var workRow = logWork("리아르 원고 생성", firstKeywordLabel.length > 24 ? firstKeywordLabel.slice(0,24) + "…" : firstKeywordLabel, "running");
+      var shortLabel = firstKeywordLabel.length > 24 ? firstKeywordLabel.slice(0,24) + "…" : firstKeywordLabel;
+      var workRow = logWork("리아르 원고 생성", shortLabel, "running");
 
       try{
         var res = await fetch("/api/write", {
@@ -1674,34 +1694,145 @@
         });
         var data = await res.json();
         if(!res.ok || data.error){
-          outEl.textContent = "생성 실패: " + (data.message || data.error || res.statusText);
-          showToast("생성 중 문제가 발생했어요");
-          updateWorkStatus(workRow, "fail", data.message || data.error || res.statusText);
-        } else {
-          var raw = String(data.text || "").trim();
-          // 혹시 모델이 마무리 문구를 스스로 붙였으면 제거하고, 고정 문구를 새로 붙인다
-          // (표시광고법 준수 문구는 모델 출력에 맡기지 않고 항상 이 코드가 직접 삽입한다).
-          raw = raw.replace(/\*?\[체험\s*후기\][\s\S]*$/, "").trim();
-          raw = raw.replace(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/, "").trim();
-          var closing = "구매는 " + link + "에서 하실 수 있어요.\n\n*[체험 후기] 본 게시글은 제품을 제공받아 작성되었습니다.*";
-          var full = raw + "\n\n" + closing;
-
-          outEl.textContent = full;
-          setCharCount(full);
-          runComplianceChecks(full);
-          showToast("원고 생성 완료");
-
-          var firstKeyword = keywords.split("\n")[0].trim();
-          addPostToManage("[리아르] " + (firstKeyword || keywords), full);
-          updateWorkStatus(workRow, "done", firstKeywordLabel);
+          var msg = data.message || data.error || res.statusText;
+          updateWorkStatus(workRow, "fail", msg);
+          return { ok: false, message: msg };
         }
+
+        var raw = String(data.text || "").trim();
+        // 혹시 모델이 마무리 문구를 스스로 붙였으면 제거한다. 실제 발행용(광고 표시 생략을 켜지 않은 경우)에는
+        // 표시광고법 준수 문구를 모델 출력에 맡기지 않고 항상 이 코드가 직접 삽입한다.
+        raw = raw.replace(/\*?\[체험\s*후기\][\s\S]*$/, "").trim();
+        raw = raw.replace(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/, "").trim();
+
+        var full;
+        if(opts.skipDisclosure){
+          // 교육/내부 자료용 — 광고 표시 문구·구매링크를 붙이지 않는다.
+          full = raw;
+        } else {
+          // 구매링크는 선택 입력이라, 비어 있으면 광고 표시 문구만 붙이고 구매링크 문장은 생략한다.
+          var closingParts = [];
+          if(opts.link){
+            closingParts.push("구매는 " + opts.link + "에서 하실 수 있어요.");
+          }
+          closingParts.push("*[체험 후기] 본 게시글은 제품을 제공받아 작성되었습니다.*");
+          full = raw + "\n\n" + closingParts.join("\n\n");
+        }
+
+        addPostToManage("[리아르] " + (firstKeywordLabel || keywords), full);
+        updateWorkStatus(workRow, "done", shortLabel + (opts.skipDisclosure ? " (표시 생략)" : ""));
+        return { ok: true, text: full, skipDisclosure: !!opts.skipDisclosure };
       }catch(e){
-        outEl.textContent = "네트워크 오류: " + String(e.message || e);
-        showToast("네트워크 오류가 발생했어요");
-        updateWorkStatus(workRow, "fail", "네트워크 오류: " + String(e.message || e));
-      }finally{
-        genBtn.disabled = false; copyBtn.disabled = false;
+        var netMsg = "네트워크 오류: " + String(e.message || e);
+        updateWorkStatus(workRow, "fail", netMsg);
+        return { ok: false, message: netMsg };
       }
+    }
+
+    // 키워드 입력창은 한 줄 = 원고 한 건이다. 1줄만 쓰면 1건, 여러 줄이면 그 줄 수만큼 순서대로 전부 생성한다.
+    // 매번 위쪽 조건(트리거·페르소나·이모티콘 톤·글자수·구매링크·비고)을 다시 채울 필요 없이, 그 값들은
+    // 모든 줄에 공통으로 적용된다. 줄 형식은 "키워드 | 검색의도" (검색의도는 생략 가능, 생략하면 위의
+    // "기본 검색의도" 필드 값을 쓴다).
+    var batchStatusEl = $("riar-batch-status");
+    var batchProgressEl = $("riar-batch-progress");
+
+    function parseRiarBatch(text){
+      return text.split("\n")
+        .map(function(line){ return line.trim(); })
+        .filter(function(line){ return line.length > 0; })
+        .map(function(line){
+          var parts = line.split("|");
+          return {
+            keyword: (parts[0] || "").trim(),
+            intent: (parts[1] || "").trim()
+          };
+        })
+        .filter(function(row){ return row.keyword; });
+    }
+
+    genBtn.addEventListener("click", async function(){
+      var rows = parseRiarBatch($("riar-keywords").value);
+      var link = $("riar-link").value.trim();
+      var skipDisclosure = $("riar-no-disclosure").checked;
+      var defaultIntent = $("riar-intent").value.trim();
+      if(rows.length === 0){ showToast("키워드/주제를 한 줄 이상 입력해주세요"); $("riar-keywords").focus(); return; }
+
+      var opts = {
+        trigger: $("riar-trigger").value,
+        persona: $("riar-persona").value.trim() || "30대 초반, 미혼 사무직 / 담백 존댓말",
+        emojiTone: $("riar-emoji-tone").value,
+        minLen: parseInt($("riar-minlen").value, 10) || 1600,
+        maxLen: parseInt($("riar-maxlen").value, 10) || 1900,
+        note: $("riar-note").value.trim(),
+        link: link,
+        skipDisclosure: skipDisclosure
+      };
+
+      genBtn.disabled = true; copyBtn.disabled = true;
+      outEl.textContent = "생성 중...";
+      setCharCount("");
+      checksEl.innerHTML = "";
+      batchStatusEl.innerHTML = "";
+      batchProgressEl.textContent = "";
+
+      // 1건일 때는 상태 목록을 따로 보여주지 않고, 여러 건일 때만 줄마다 진행 상태를 보여준다.
+      var showStatusList = rows.length > 1;
+      var statusRows = showStatusList ? rows.map(function(row, i){
+        var el = document.createElement("div");
+        el.className = "worklog-row";
+        el.innerHTML = "<div class='row-head'><span class='row-title'>" + (i + 1) + ". " + escapeHtml(row.keyword) + "</span><span class='badge running'>대기</span></div>";
+        batchStatusEl.appendChild(el);
+        return el;
+      }) : null;
+
+      var doneCount = 0, failCount = 0;
+      for(var i = 0; i < rows.length; i++){
+        if(showStatusList){
+          var badge = statusRows[i].querySelector(".badge");
+          badge.className = "badge running";
+          badge.textContent = "생성 중";
+          batchProgressEl.textContent = "(" + (i + 1) + " / " + rows.length + " 진행 중)";
+        }
+
+        var result = await generateOneRiarPost(rows[i].keyword, rows[i].intent || defaultIntent, opts);
+
+        if(result.ok){
+          doneCount++;
+          outEl.textContent = result.text;
+          setCharCount(result.text);
+          runComplianceChecks(result.text, result.skipDisclosure);
+          if(showStatusList){
+            statusRows[i].querySelector(".badge").className = "badge done";
+            statusRows[i].querySelector(".badge").textContent = "완료";
+          }
+        } else {
+          failCount++;
+          if(!showStatusList){
+            outEl.textContent = "생성 실패: " + result.message;
+          } else {
+            statusRows[i].querySelector(".badge").className = "badge fail";
+            statusRows[i].querySelector(".badge").textContent = "실패";
+            var errP = document.createElement("p");
+            errP.className = "row-detail";
+            errP.textContent = result.message || "";
+            statusRows[i].appendChild(errP);
+          }
+        }
+
+        // 여러 건일 때는 API 과호출을 피하려고 다음 항목 전에 살짝 쉰다.
+        if(i < rows.length - 1){
+          await new Promise(function(resolve){ setTimeout(resolve, 1200); });
+        }
+      }
+
+      if(rows.length === 1){
+        showToast(doneCount ? ("원고 생성 완료" + (opts.skipDisclosure ? " (광고 표시 생략)" : "")) : "생성 중 문제가 발생했어요");
+      } else {
+        batchProgressEl.textContent = "완료 " + doneCount + "건 · 실패 " + failCount + "건";
+        showToast("일괄 생성 완료: " + doneCount + "건 성공");
+      }
+
+      genBtn.disabled = false; copyBtn.disabled = false;
     });
 
     copyBtn.addEventListener("click", function(){ copyText(outEl.textContent); });
