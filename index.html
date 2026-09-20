@@ -654,6 +654,8 @@
           <div class="field" style="grid-column:1/-1;">
             <label for="riar-keywords">키워드 / 주제 <span style="font-weight:400;">(한 줄에 한 건씩 — 1건만 써도 되고, 여러 줄 붙여넣으면 그 줄 수만큼 순서대로 전부 생성돼요)</span></label>
             <textarea id="riar-keywords" rows="6" placeholder="한 줄에 한 건씩 적어주세요. '키워드 | 검색의도' 형식이고 검색의도는 생략 가능해요.
+연관 키워드는 안 적어도 돼요 — 원고 생성할 때 네이버 자동완성에서 자동으로 조회해서 반영해요.
+(직접 넣고 싶으면 '키워드 | 검색의도 | 연관키워드1,연관키워드2'처럼 뒤에 추가해도 되고, 그럼 그걸 그대로 써요)
 
 예)
 기미 사라지는 크림 | 가격 비교
@@ -665,7 +667,7 @@
                 <button type="button" class="kb-textlink" id="riar-keyword-bank-add-toggle">+ 후보 키워드 등록</button>
               </div>
               <div class="kb-add-row" id="riar-keyword-bank-add-row" hidden>
-                <textarea id="riar-keyword-bank-add" rows="3" placeholder="한 줄에 하나씩 붙여넣으세요. '키워드 | 검색의도' 형식 (검색의도 생략 가능)"></textarea>
+                <textarea id="riar-keyword-bank-add" rows="3" placeholder="한 줄에 하나씩 붙여넣으세요. '키워드 | 검색의도' 형식 (검색의도 생략 가능). 연관 키워드는 생성할 때 자동 조회돼서 안 적어도 돼요."></textarea>
                 <button type="button" class="btn ghost" id="riar-keyword-bank-add-btn">등록</button>
               </div>
               <p class="kb-progress" id="riar-keyword-bank-progress" hidden></p>
@@ -1599,6 +1601,60 @@
       "정보전달형": "이모티콘은 전체 글에서 0~1회만 사용하거나 아예 쓰지 않는다."
     };
 
+    // 경쟁사 "멜라즈"가 실제로 발행해서 검색 노출에 성공한 제목들. 대표님이 직접 확인해서 주신 실제 데이터라
+    // 일반적인 공식(기간+용량+후기어미)보다 이 목록 자체를 최우선 참고 자료로 프롬프트에 그대로 넣는다.
+    var RIAR_MELAZ_REFERENCE_TITLES = [
+      "도미나크림 2개월 사용, 약국 구매 솔직후기",
+      "멜라토닝크림 1년간 쓰면서 드디어 알아낸 (사용법 및 꿀팁)",
+      "누룩밤 수면팩 40대 기미 5주 솔직후기",
+      "이지듀 기미앰플과 크림 1개월 사용 솔직후기",
+      "도미나크림 사용법 알고쓰자 모르고 쓰면 역효과",
+      "누룩밤 수면팩 기미 잡티에 잘 먹힐까?",
+      "이지듀 기미앰플 30ml 한달 실사용 내돈내산 후기",
+      "흑자 제거 패치 효과 한달 실사용 내돈내산 후기",
+      "기미제거 크림 멜라토닝크림 연고 효과 실사용 후기",
+      "색소침착 연고 약국 처방 크림 비교 후기",
+      "이지듀기미앰플 세 달 사용해본 50대 솔직후기",
+      "코페르 큐리페어 멜라크림 2개월 실제후기",
+      "도미나크림 기미관리 8주사용 솔직후기",
+      "이지듀 기미앰플 3개월 사용 내돈내산 실제 후기",
+      "이지듀 기미앰플 12ml (올리브영 내돈내산)후기",
+      "멜라논 연고 기미 제거 내돈내산 병원처방",
+      "기미 제거 연고 효과 약국 멜라토닝크림 내돈내산 실사용 후기",
+      "다이소 기미크림 내돈내산 3개월 실사용 효과 후기",
+      "도미나스 기미크림 잡티 내돈내산 연고 효과 후기",
+      "기미 잡티 연고 코페르 기미크림 내돈내산 실사용 후기",
+      "얼굴 검버섯 크림 약국 멜라논크림 내돈내산 후기",
+      "함익병 기미크림 멜라논 크림 효과 연고 내돈내산 후기",
+      "메디필 멜라논엑스 크림 다이소 연고 차이 내돈내산 후기",
+      "기미 잡티 크림 추천 약국 연고 내돈내산 후기",
+      "도미나 기미크림 내돈내산 약국 가격 한달 효과 후기",
+      "순수 비타민c 앰플 비교 한달 실사용 내돈내산 후기",
+      "올리브영 기미크림 3종 내돈내산 비교 한달 후기",
+      "도미나스 앰플 효과 성분 내돈내산 후기",
+      "이지듀 기미패치 효과 실사용 내돈내산 솔직후기"
+    ];
+
+    // 키워드와 겹치는 단어가 있는 제목을 우선으로, 최대 N개만 골라서 프롬프트에 넣는다(전체 29개를 매번
+    // 다 넣으면 프롬프트가 불필요하게 길어지니, 지금 키워드와 관련 있는 것부터 보여준다).
+    function pickRelevantMelazTitles(keyword, limit){
+      var kw = String(keyword || "");
+      var scored = RIAR_MELAZ_REFERENCE_TITLES.map(function(title){
+        var score = 0;
+        // 2글자 이상 어절 단위로 겹치는지 대충 체크(정교한 형태소 분석 없이 실용적으로).
+        kw.split(/[\s,·|]+/).forEach(function(tok){
+          if(tok.length >= 2 && title.indexOf(tok) !== -1) score++;
+        });
+        return { title: title, score: score };
+      });
+      scored.sort(function(a, b){ return b.score - a.score; });
+      var top = scored.filter(function(s){ return s.score > 0; }).slice(0, limit);
+      // 겹치는 키워드가 하나도 없으면(완전히 새로운 제품군), 그냥 앞에서부터 일부를 보여줘서
+      // 최소한 "패턴" 감각은 유지시킨다.
+      if(top.length === 0){ top = scored.slice(0, limit); }
+      return top.map(function(s){ return s.title; });
+    }
+
     function buildRiarPrompt(v){
       var triggerBlock;
       if(v.trigger === "auto" || !RIAR_TRIGGER_SKELETONS[v.trigger]){
@@ -1612,6 +1668,8 @@
       }
 
       var emojiRule = RIAR_EMOJI_DENSITY[v.emojiTone] || RIAR_EMOJI_DENSITY["담백형"];
+      var melazExamples = pickRelevantMelazTitles(v.keywords, 6);
+      var melazExamplesBlock = melazExamples.map(function(t){ return "  - \"" + t + "\""; }).join("\n");
 
       return (
         "너는 네이버 블로그에 올라가는 제품 체험 후기 원고를 쓰는 카피라이터다. 실제 소비자가 쓴 것처럼 자연스럽게, 아래 규칙을 절대 벗어나지 않는 선에서 작성한다.\n\n" +
@@ -1637,16 +1695,23 @@
         "- 소제목: 도입부 제외 6~7개.\n" +
         "- 성분 설명 섹션에는 반드시 적응증(기미/주근깨/색소침착 등)을 나열해 전문성을 만든다.\n" +
         "- 마무리 섹션에는 \"대조군은 ~였다면, 루미넥신 앰플은 ~이다\" 형태의 대구법 문장을 반드시 넣는다.\n" +
+        "- 연관 키워드가 주어졌다면, 그중 제목에 쓰지 않은 나머지 1~2개도 본문 소제목이나 문장 속에 자연스럽게 녹여서 (억지로 나열하지 말고) 연관검색어 노출 범위를 넓힌다.\n" +
         "- " + emojiRule + "\n\n" +
         "[입력 변수]\n" +
         "키워드: " + v.keywords + "\n" +
         "검색의도: " + (v.intent || "(미지정)") + "\n" +
+        "연관 키워드(네이버 자동완성 기반, 검색 노출 확장용): " + (v.related || "(없음)") + "\n" +
         "페르소나: " + v.persona + "\n" +
         (v.note ? ("비고: " + v.note + "\n") : "") +
         "\n[제목 스타일 — 아래 공식을 그대로 따른다. 절대 벗어나지 마라]\n" +
-        "제목 공식: [대조군 제품명] + [기간(개월/주/년) 또는 용량(ml) 또는 나이대 또는 구매처(약국/올리브영/다이소 등) 중 1~2개] + [후기 어미]\n" +
+        "제목 공식: [대조군 제품명] + [아래 A 또는 B 중 1~2개] + [후기 어미]\n" +
+        "  A. 기간(개월/주/년), 용량(ml), 나이대, 구매처(약국/올리브영/다이소 등)\n" +
+        "  B. 위 [입력 변수]의 \"연관 키워드\"가 있으면 그중 실제 검색량이 있을 법한 것 1개 (예: 효과, 사용법, 성분, 40ml, 내돈내산 등) — 메인 키워드에 자연스럽게 붙여서, 이 글이 메인 키워드뿐 아니라 그 연관 키워드로 검색해도 노출되게 만든다.\n" +
+        "연관 키워드가 주어졌다면 A만 쓰지 말고 반드시 B도 고려해서, 둘 중 이 제목에 가장 자연스럽고 검색 노출에 유리한 조합을 고른다. 연관 키워드가 \"(없음)\"이면 A만 사용한다.\n" +
         "후기 어미는 다음 중 하나만 쓴다: \"솔직후기\", \"내돈내산 후기\", \"내돈내산 실사용 후기\", \"실사용 후기\", \"체험 후기\", \"실제후기\".\n" +
-        "좋은 예시(이 형태를 그대로 따라라): \"도미나크림 2개월 사용, 약국 구매 솔직후기\" / \"이지듀 기미앰플 30ml 한달 실사용 내돈내산 후기\" / \"기미크림 40대 5주 실사용 후기\" / \"이지듀기미앰플 세 달 사용해본 50대 솔직후기\" / \"도미나크림 기미관리 8주사용 솔직후기\"\n" +
+        "**[최우선 참고 자료] 경쟁사 \"멜라즈\"가 실제로 발행해서 검색 노출에 성공한 제목들이다. 아래 어떤 일반 공식·설명보다 이 목록을 최우선으로 따른다. 지금 키워드와 가장 비슷한 것의 어순·길이·정보 조합 방식을 그대로 본떠서 짓는다:**\n" +
+        melazExamplesBlock + "\n" +
+        "(참고용 일반 형태 예시: \"이지듀 기미앰플 12ml (올리브영 내돈내산)후기\" 처럼 용량+구매처 조합, \"이지듀 기미패치 효과 실사용 내돈내산 솔직후기\" 처럼 연관 키워드 \"효과\" 조합도 가능하다.)\n" +
         "나쁜 예시(절대 이렇게 쓰지 마라 — 실제로 아래처럼 잘못 나온 사례임):\n" +
         "  X \"멜라토닝크림 8개월 사용 후 정체기, 전환 계기 솔직후기\" → 이유: \"정체기\", \"전환 계기\" 같은 스토리텔링/서사 단어가 제목에 들어감\n" +
         "  X \"도미나크림 3개월 약국 구매 후 중단, 루미넥신 앰플로 바꾼 솔직후기\" → 이유: \"중단\", \"~로 바꾼\" 같은 서사 단어 + 타겟 제품명이 들어감\n" +
@@ -1693,6 +1758,17 @@
     var kbAddBtn = $("riar-keyword-bank-add-btn");
     var kbProgressEl = $("riar-keyword-bank-progress");
 
+    // 뱅크 항목 하나를 "키워드 | 검색의도 | 연관키워드" 줄 형식으로 되돌린다. (parseRiarBatch의 역변환)
+    function buildRiarKeywordLine(item){
+      if(item.related){
+        return item.keyword + " | " + (item.intent || "") + " | " + item.related;
+      }
+      if(item.intent){
+        return item.keyword + " | " + item.intent;
+      }
+      return item.keyword;
+    }
+
     function loadRiarKeywordBank(){
       try{
         var raw = localStorage.getItem(RIAR_KEYWORD_BANK_KEY);
@@ -1718,7 +1794,7 @@
       arr.forEach(function(item){ existing[item.keyword] = true; });
       rows.forEach(function(row){
         if(!row.keyword || existing[row.keyword]) return;
-        arr.unshift({ keyword: row.keyword, intent: row.intent || "", done: false, ts: Date.now() });
+        arr.unshift({ keyword: row.keyword, intent: row.intent || "", related: row.related || "", done: false, ts: Date.now() });
         existing[row.keyword] = true;
       });
       if(arr.length > RIAR_KEYWORD_BANK_MAX) arr = arr.slice(0, RIAR_KEYWORD_BANK_MAX);
@@ -1785,7 +1861,10 @@
       ordered.forEach(function(item){
         var chip = document.createElement("label");
         chip.className = "kb-chip" + (item.done ? " kb-done" : "");
-        chip.title = item.intent ? ("검색의도: " + item.intent) : "";
+        var titleParts = [];
+        if(item.intent) titleParts.push("검색의도: " + item.intent);
+        if(item.related) titleParts.push("연관 키워드: " + item.related);
+        chip.title = titleParts.join(" · ");
 
         var cb = document.createElement("input");
         cb.type = "checkbox";
@@ -1847,7 +1926,7 @@
         var lines = kwEl.value.split("\n").map(function(l){ return l.trim(); }).filter(function(l){ return l !== ""; });
         checkedChips.forEach(function(chip){
           var item = chip._kbItem;
-          var line = item.intent ? (item.keyword + " | " + item.intent) : item.keyword;
+          var line = buildRiarKeywordLine(item);
           if(lines.indexOf(line) === -1 && lines.indexOf(item.keyword) === -1){
             lines.push(line);
           }
@@ -1940,10 +2019,11 @@
 
     // 원고 1건을 실제로 생성하는 공통 로직. 키워드가 몇 줄이든 이 함수를 줄 수만큼 반복 호출한다.
     // opts: { trigger, persona, emojiTone, minLen, maxLen, note, link, skipDisclosure }
-    async function generateOneRiarPost(keywords, intent, opts){
+    async function generateOneRiarPost(keywords, intent, related, opts){
       var v = {
         keywords: keywords,
         intent: intent || "",
+        related: related || "",
         trigger: opts.trigger,
         persona: opts.persona,
         emojiTone: opts.emojiTone,
@@ -1991,7 +2071,8 @@
 
         addPostToManage("[리아르] " + (firstKeywordLabel || keywords), full);
         markKeywordDoneInBank(firstKeywordLabel || keywords, intent);
-        updateWorkStatus(workRow, "done", shortLabel + (opts.skipDisclosure ? " (표시 생략)" : ""));
+        var doneDetail = shortLabel + (opts.skipDisclosure ? " (표시 생략)" : "") + (v.related ? (" · 연관: " + v.related) : "");
+        updateWorkStatus(workRow, "done", doneDetail);
         return { ok: true, text: full, skipDisclosure: !!opts.skipDisclosure };
       }catch(e){
         var netMsg = "네트워크 오류: " + String(e.message || e);
@@ -2015,10 +2096,25 @@
           var parts = line.split("|");
           return {
             keyword: (parts[0] || "").trim(),
-            intent: (parts[1] || "").trim()
+            intent: (parts[1] || "").trim(),
+            related: (parts[2] || "").trim()
           };
         })
         .filter(function(row){ return row.keyword; });
+    }
+
+    // 키워드만 넣으면 연관 키워드는 네이버 자동완성에서 서버(/api/related-keywords)가 대신 가져온다.
+    // 사용자가 직접 "키워드 | 검색의도 | 연관키워드"로 넣어둔 게 있으면 그건 그대로 존중하고 건드리지 않는다.
+    // 실패해도(네이버 쪽 응답이 없거나 형식이 바뀌었거나) 조용히 빈 값으로 넘어가고, 원고 생성 자체는 막지 않는다.
+    async function fetchRelatedKeywords(keyword){
+      try{
+        var res = await fetch("/api/related-keywords?q=" + encodeURIComponent(keyword));
+        if(!res.ok) return [];
+        var data = await res.json();
+        return Array.isArray(data.related) ? data.related : [];
+      }catch(e){
+        return [];
+      }
     }
 
     genBtn.addEventListener("click", async function(){
@@ -2060,12 +2156,22 @@
       for(var i = 0; i < rows.length; i++){
         if(showStatusList){
           var badge = statusRows[i].querySelector(".badge");
-          badge.className = "badge running";
-          badge.textContent = "생성 중";
           batchProgressEl.textContent = "(" + (i + 1) + " / " + rows.length + " 진행 중)";
         }
 
-        var result = await generateOneRiarPost(rows[i].keyword, rows[i].intent || defaultIntent, opts);
+        // 사용자가 직접 연관 키워드를 안 적었으면, 생성 직전에 자동으로 조회해서 채운다(수동 타이핑 불필요).
+        if(!rows[i].related){
+          if(showStatusList){ badge.className = "badge running"; badge.textContent = "연관 키워드 조회 중"; }
+          var fetchedRelated = await fetchRelatedKeywords(rows[i].keyword);
+          if(fetchedRelated.length > 0){ rows[i].related = fetchedRelated.join(", "); }
+        }
+
+        if(showStatusList){
+          badge.className = "badge running";
+          badge.textContent = "생성 중";
+        }
+
+        var result = await generateOneRiarPost(rows[i].keyword, rows[i].intent || defaultIntent, rows[i].related, opts);
 
         if(result.ok){
           doneCount++;

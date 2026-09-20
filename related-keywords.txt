@@ -1,0 +1,84 @@
+// GET /api/related-keywords?q=키워드
+// 네이버 검색창 자동완성이 쓰는 것과 같은 공개 엔드포인트(ac.search.naver.com)를 서버에서 대신 호출해서,
+// 그 키워드를 검색했을 때 뜨는 연관 검색어 후보를 돌려준다. 브라우저에서 직접 호출하면 CORS로 막히기
+// 때문에 이 서버리스 함수가 대신 요청해서 결과만 JSON으로 넘겨준다.
+//
+// 주의: 이건 네이버가 공식 문서로 제공하는 API가 아니라, 검색창 자동완성이 내부적으로 쓰는 비공식
+// 엔드포인트다. 네이버가 언제든 응답 형식을 바꾸거나 막을 수 있으므로, 실패해도 원고 생성 자체는
+// 막히지 않도록 항상 200 + { related: [] } 형태로 안전하게 응답한다(호출부에서 그대로 "연관 키워드 없음"
+// 취급하면 됨).
+export async function onRequestGet(context) {
+  const { request } = context;
+  const url = new URL(request.url);
+  const q = (url.searchParams.get("q") || "").trim();
+
+  if (!q) {
+    return json({ query: q, related: [], message: "키워드가 비어 있습니다." });
+  }
+
+  const naverUrl =
+    "https://ac.search.naver.com/nx/ac?q=" + encodeURIComponent(q) +
+    "&con=0&frm=nv&ans=2&r_format=json&r_enc=UTF-8&r_unicode=0&t_koreng=1&run=2&rev=4&q_enc=UTF-8&st=100";
+
+  try {
+    const res = await fetch(naverUrl, {
+      headers: {
+        // 일반 브라우저 요청처럼 보여야 정상 응답을 준다.
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        Referer: "https://search.naver.com/",
+      },
+    });
+
+    if (!res.ok) {
+      return json({ query: q, related: [], message: "네이버 자동완성 응답 오류(" + res.status + ")" });
+    }
+
+    const data = await res.json().catch(() => null);
+    const rawList = extractSuggestions(data);
+
+    // 메인 키워드로 "시작하는" 제안만 남기고, 그 뒤에 붙는 조각만 연관 키워드로 뽑는다.
+    // (예: "이지듀 기미앰플" 검색 시 "이지듀 기미앰플 40ml" → "40ml")
+    const seen = new Set();
+    const related = [];
+    rawList.forEach((sugRaw) => {
+      const sug = String(sugRaw || "").trim();
+      if (!sug || sug === q) return;
+      if (!sug.startsWith(q)) return;
+      const suffix = sug.slice(q.length).trim();
+      if (!suffix || seen.has(suffix)) return;
+      seen.add(suffix);
+      related.push(suffix);
+    });
+
+    return json({ query: q, related: related.slice(0, 10), raw: rawList.slice(0, 20) });
+  } catch (e) {
+    return json({ query: q, related: [], message: "네트워크 오류: " + String((e && e.message) || e) });
+  }
+}
+
+// 네이버 자동완성 JSON은 보통 { items: [[[제안어, ...], [제안어, ...], ...]] } 형태인데,
+// 비공식 API라 형식이 바뀔 수 있어 몇 가지 모양을 방어적으로 다 시도해본다.
+function extractSuggestions(data) {
+  if (!data) return [];
+  try {
+    if (Array.isArray(data.items) && Array.isArray(data.items[0])) {
+      return data.items[0]
+        .map((row) => (Array.isArray(row) ? row[0] : row))
+        .filter((v) => typeof v === "string");
+    }
+    if (Array.isArray(data.items)) {
+      return data.items.filter((v) => typeof v === "string");
+    }
+  } catch (e) {
+    // 무시하고 빈 배열 반환
+  }
+  return [];
+}
+
+function json(obj, status) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}
