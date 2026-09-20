@@ -1,0 +1,1917 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>비주얼 프롬프트 스튜디오</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#f6f8f6; --surface:#ffffff; --surface-2:#f0f3f0; --border:#e3e8e3;
+    --text:#15201a; --text-muted:#6b756f;
+    --accent:#16a34a; --accent-ink:#ffffff;
+    --accent-soft:#e9f7ef;
+    --accent-2:#0f766e; --accent-2-ink:#ffffff;
+    --danger:#b3261e; --good:#16a34a;
+    --sidebar:#ffffff;
+    --shadow: 0 1px 2px rgba(16,24,18,.04), 0 10px 28px -14px rgba(16,24,18,.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12161a; --surface:#1a1f24; --surface-2:#212830; --border:#2c343d;
+      --text:#e9edf0; --text-muted:#8d97a0;
+      --accent:#3ecf76; --accent-ink:#0a1a10;
+      --accent-soft:#173323;
+      --accent-2:#4fc0b3; --accent-2-ink:#04211d;
+      --danger:#e2685c; --good:#3ecf76;
+      --sidebar:#171b20;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12161a; --surface:#1a1f24; --surface-2:#212830; --border:#2c343d;
+    --text:#e9edf0; --text-muted:#8d97a0;
+    --accent:#3ecf76; --accent-ink:#0a1a10;
+    --accent-soft:#173323;
+    --accent-2:#4fc0b3; --accent-2-ink:#04211d;
+    --danger:#e2685c; --good:#3ecf76;
+    --sidebar:#171b20;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg); color:var(--text);
+    font-family:"Noto Sans KR", system-ui, sans-serif;
+    line-height:1.55;
+  }
+
+  .app-shell{display:flex; min-height:100vh; align-items:flex-start;}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    width:250px; flex:0 0 250px; min-height:100vh; background:var(--sidebar);
+    border-right:1px solid var(--border); padding:22px 16px; display:flex;
+    flex-direction:column; gap:26px; position:sticky; top:0;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:0 6px;}
+  .brand-icon{
+    width:34px; height:34px; border-radius:9px; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex:none;
+  }
+  .brand-text{display:flex; flex-direction:column; line-height:1.25; min-width:0;}
+  .brand-text strong{font-size:13px; font-weight:700; color:var(--text);}
+  .brand-text span{font-size:11px; color:var(--text-muted);}
+
+  .side-nav{display:flex; flex-direction:column; gap:3px;}
+  .nav-group-label{
+    font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-muted); margin:14px 12px 4px; opacity:.75;
+  }
+  .nav-group-label:first-child{margin-top:2px;}
+  .side-nav .tab{
+    appearance:none; border:none; background:transparent; color:var(--text-muted);
+    font-family:inherit; font-size:13.5px; font-weight:600; padding:10px 12px;
+    border-radius:9px; cursor:pointer; white-space:nowrap; text-align:left;
+    display:flex; align-items:center; gap:10px; width:100%;
+  }
+  .side-nav .tab .nav-icon{font-size:15px; flex:none; width:18px; text-align:center;}
+  .side-nav .tab:hover{background:var(--surface-2); color:var(--text);}
+  .side-nav .tab.active{background:var(--accent-soft); color:var(--accent);}
+  .tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .sidebar-foot{margin-top:auto; display:flex; flex-direction:column; gap:10px;}
+  .foot-note{
+    font-size:11.5px; color:var(--text-muted); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0;
+  }
+
+  /* ---------- main ---------- */
+  .main{flex:1; min-width:0; padding:26px 32px 60px; max-width:1000px;}
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-bottom:22px; flex-wrap:wrap;
+  }
+  .breadcrumb{font-size:12.5px; color:var(--text-muted); margin:0;}
+  .breadcrumb span{color:var(--text); font-weight:600;}
+  .status-pill{
+    display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600;
+    color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border);
+    padding:6px 12px; border-radius:999px;
+  }
+  .status-pill .dot{width:7px; height:7px; border-radius:50%; background:var(--text-muted); flex:none;}
+  .status-pill.ok{color:var(--good);}
+  .status-pill.ok .dot{background:var(--good);}
+  .status-pill.err{color:var(--danger);}
+  .status-pill.err .dot{background:var(--danger);}
+
+  header{margin-bottom:20px;}
+  .eyebrow{
+    font-size:11.5px; letter-spacing:.14em; font-weight:600; color:var(--accent);
+    text-transform:uppercase; margin:0 0 8px;
+  }
+  h1{
+    font-weight:700; letter-spacing:-.01em;
+    font-size:clamp(24px,3.4vw,30px); margin:0 0 10px; color:var(--text);
+  }
+  .sub{color:var(--text-muted); font-size:14.5px; margin:0; max-width:62ch;}
+
+  .panel-body{display:flex; flex-direction:column; gap:18px;}
+
+  @media (max-width:860px){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%; flex:none; min-height:0; position:static; border-right:none; border-bottom:1px solid var(--border);}
+    .side-nav{flex-direction:row; flex-wrap:wrap;}
+    .side-nav .tab{width:auto;}
+    .sidebar-foot{margin-top:6px;}
+    .main{padding:22px 16px 48px;}
+  }
+
+  .panel{display:none; flex-direction:column; gap:18px;}
+  .panel.active{display:flex;}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:20px 22px; box-shadow:var(--shadow);
+  }
+
+  .tip{
+    background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--accent-2);
+    border-radius:10px; padding:13px 16px; font-size:13px; color:var(--text-muted);
+  }
+  .tip b{color:var(--text); font-weight:600;}
+  .tip.warn{border-left-color:var(--danger);}
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(190px,1fr)); gap:14px;
+  }
+  .field{display:flex; flex-direction:column; gap:6px; min-width:0;}
+  [hidden]{display:none !important;}
+  .field label{font-size:12.5px; font-weight:600; color:var(--text-muted);}
+  select, textarea, input[type=text], input[type=file]{
+    font-family:inherit; font-size:14px; color:var(--text); background:var(--bg);
+    border:1px solid var(--border); border-radius:9px; padding:9px 10px; width:100%;
+  }
+  select:focus-visible, textarea:focus-visible, input:focus-visible{
+    outline:2px solid var(--accent); outline-offset:1px;
+  }
+  textarea{resize:vertical; min-height:64px; font-family:inherit;}
+  .hint{font-size:12px; color:var(--text-muted); margin-top:2px;}
+
+  .actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+  button.btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+    font-family:inherit; font-size:13.5px; font-weight:600; padding:10px 16px;
+    border-radius:9px; cursor:pointer;
+  }
+  button.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  button.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+  button.btn.ghost{background:transparent;}
+  button.btn:hover{filter:brightness(1.06);}
+  button.btn:disabled{opacity:.55; cursor:default;}
+
+  .out-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;}
+  .out-title{font-size:13px; font-weight:700; color:var(--text);}
+  .out-title span{color:var(--text-muted); font-weight:500;}
+  .copy-btn{
+    appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text-muted);
+    font-family:inherit; font-size:12px; font-weight:600; padding:6px 11px; border-radius:7px; cursor:pointer;
+  }
+  .copy-btn:hover{color:var(--text); filter:brightness(1.05);}
+
+  pre.out{
+    font-family:"JetBrains Mono", ui-monospace, monospace; font-size:12.6px; line-height:1.65;
+    background:var(--bg); border:1px solid var(--border); border-radius:10px;
+    padding:14px 16px; white-space:pre-wrap; word-break:break-word; margin:0;
+    max-height:340px; overflow:auto;
+  }
+  .summary-line{
+    font-family:"Noto Sans KR",sans-serif; font-size:12.5px; color:var(--text-muted);
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    padding:8px 12px; margin-bottom:10px;
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(12px);
+    background:var(--text); color:var(--bg); font-size:13px; font-weight:600;
+    padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease; z-index:50;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .badge-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .badge{
+    font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-muted);
+  }
+  .badge.accent{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  .badge.after{background:var(--accent-2); color:var(--accent-2-ink); border-color:var(--accent-2);}
+  .badge.done{background:rgba(22,163,74,.12); color:var(--good); border-color:var(--good);}
+  .badge.fail{background:rgba(179,38,30,.12); color:var(--danger); border-color:var(--danger);}
+  .badge.running{background:rgba(37,99,235,.12); color:#2563eb; border-color:#2563eb;}
+
+  .worklog-row{padding:12px 0; border-bottom:1px solid var(--border);}
+  .worklog-row:last-child{border-bottom:none;}
+  .worklog-row .row-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .worklog-row .row-title{font-weight:700; font-size:14px;}
+  .worklog-row .row-detail{margin:4px 0 0; font-size:13px; color:var(--text-muted);}
+  .worklog-row .row-time{margin:2px 0 0; font-size:11px; color:var(--text-muted); font-family:ui-monospace, SFMono-Regular, Menlo, monospace;}
+
+  .thumb-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
+  .thumb-row img{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border);}
+
+  .img-result{
+    display:flex; flex-direction:column; gap:10px; align-items:flex-start;
+  }
+  .img-result img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
+
+  @media (max-width:480px){
+    .grid{grid-template-columns:1fr 1fr;}
+    .card{padding:16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">D</div>
+      <div class="brand-text">
+        <strong>DID</strong>
+      </div>
+    </div>
+
+    <nav class="side-nav" role="tablist">
+      <p class="nav-group-label">콘텐츠 워크플로우</p>
+      <button class="tab active" id="tab-postmanage" data-tab="postmanage" data-label="글 관리" role="tab" aria-selected="true"><span class="nav-icon">📋</span>글 관리</button>
+      <button class="tab" id="tab-writer" data-tab="writer" data-label="새 글 준비" role="tab" aria-selected="false"><span class="nav-icon">✍️</span>새 글 준비</button>
+      <button class="tab" id="tab-research" data-tab="research" data-label="검색 리서치" role="tab" aria-selected="false"><span class="nav-icon">🔎</span>검색 리서치</button>
+      <button class="tab" id="tab-worklog" data-tab="worklog" data-label="작업 기록" role="tab" aria-selected="false"><span class="nav-icon">🗂️</span>작업 기록</button>
+
+      <p class="nav-group-label">이미지 도구</p>
+      <button class="tab" id="tab-persona" data-tab="persona" data-label="인물 페르소나" role="tab" aria-selected="false"><span class="nav-icon">👤</span>인물 페르소나</button>
+      <button class="tab" id="tab-product" data-tab="product" data-label="제품 실사 이미지" role="tab" aria-selected="false"><span class="nav-icon">🛍️</span>제품 실사 이미지</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <p class="foot-note">🔒 API 키와 비밀번호는 서버에만 안전하게 보관되고, 이 화면에는 노출되지 않습니다.</p>
+      <button id="logout-btn" type="button" class="btn ghost" style="width:100%;">로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <p class="breadcrumb">워크스페이스 / <span id="crumb-current">글 관리</span></p>
+      <div class="status-pill" id="status-pill"><span class="dot"></span><span id="status-pill-text">연결 확인 중...</span></div>
+    </div>
+
+    <header>
+      <p class="eyebrow">Content &amp; Image Studio</p>
+      <h1>비주얼 프롬프트 스튜디오</h1>
+      <p class="sub">슬립포어 · 아드코 · 리아르 · 폴린칼츠 — 인물 페르소나 프롬프트, 제품 실사 이미지 생성, 블로그 원고 작성을 한 화면에서 처리합니다.</p>
+    </header>
+
+    <div id="api-warning" class="tip warn" hidden>
+      이미지·원고 생성 API가 아직 연결되지 않았어요. <code>functions/api/write.js</code>, <code>functions/api/image.js</code>가 배포된 서버(Cloudflare Pages 등)에 접속해야 정상 동작합니다. README.md를 참고해주세요.
+    </div>
+
+    <!-- POST MANAGEMENT PANEL -->
+    <section id="panel-postmanage" class="panel active">
+      <div class="tip">
+        이 목록은 <b>이 브라우저 세션에서 "새 글 준비"로 생성한 원고</b>를 최신순으로 보여줍니다. 새로고침하면 초기화되며, 아직 별도 서버 저장소는 연결되어 있지 않아요.
+      </div>
+      <div class="card" id="postmanage-empty">
+        <p class="hint" style="margin:0;">아직 생성된 원고가 없습니다. 왼쪽 메뉴에서 <b>"새 글 준비"</b>로 이동해 원고를 만들어보세요.</p>
+      </div>
+      <div id="postmanage-list" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </section>
+
+    <!-- SEARCH RESEARCH PANEL (placeholder) -->
+    <section id="panel-research" class="panel">
+      <div class="card">
+        <p class="out-title" style="margin-bottom:8px;">검색 리서치 — 준비 중인 기능이에요</p>
+        <p class="hint" style="margin:0;">원고 주제와 관련된 최신 자료·경쟁사 콘텐츠·키워드를 자동으로 조사해주는 기능을 이 화면에 추가할 예정입니다. 어떤 방식(네이버 검색, 구글 검색, 특정 키워드 트렌드 등)으로 조사하면 좋을지 알려주시면 이어서 만들어드릴게요.</p>
+      </div>
+    </section>
+
+    <!-- WORK LOG PANEL -->
+    <section id="panel-worklog" class="panel">
+      <div class="card">
+        <p class="out-title" style="margin-bottom:4px;">실행 기록</p>
+        <p class="hint" style="margin:0 0 14px;">이 브라우저 세션에서 실행한 원고·이미지 생성 작업을 최신순으로 보여줍니다. 새로고침하면 초기화됩니다.</p>
+        <div id="worklog-empty">
+          <p class="hint" style="margin:0;">아직 기록된 작업이 없습니다.</p>
+        </div>
+        <div id="worklog-list"></div>
+      </div>
+    </section>
+
+    <!-- PERSONA PANEL -->
+  <section id="panel-persona" class="panel">
+    <div class="tip">
+      <b>작동 방식(앵커 방식):</b> ① 옵션 선택 → ② 프롬프트 생성 → ③ <b>비포(BEFORE) 프롬프트</b>로 이미지 1장 생성 → ④ 그 이미지를 이미지 생성 도구에 첨부하고 <b>애프터(AFTER) 프롬프트</b>를 붙여넣으면, 같은 얼굴·같은 정체성 그대로 피부만 개선된 이미지가 나옵니다.
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="field">
+          <label for="p-purpose">용도</label>
+          <select id="p-purpose">
+            <option value="before_after">스킨케어 비포/애프터 진행컷</option>
+            <option value="lifestyle">라이프스타일 데일리컷</option>
+            <option value="product_use">제품 착용·사용컷</option>
+            <option value="unboxing">언박싱·체험 후기컷</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-gender">성별</label>
+          <select id="p-gender">
+            <option value="female">여성</option>
+            <option value="male">남성</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-age">연령대</label>
+          <select id="p-age">
+            <option value="early 20s">20대 초반</option>
+            <option value="late 20s">20대 후반</option>
+            <option value="early 30s" selected>30대 초반</option>
+            <option value="late 30s">30대 후반</option>
+            <option value="40s">40대</option>
+            <option value="50s or older">50대 이상</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-skin">피부 톤</label>
+          <select id="p-skin">
+            <option value="warm ivory">웜톤 아이보리</option>
+            <option value="cool porcelain">쿨톤 포슬린</option>
+            <option value="neutral beige" selected>뉴트럴 베이지</option>
+            <option value="healthy tan brown">건강한 탄색</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-framing">프레이밍</label>
+          <select id="p-framing">
+            <option value="full face">FULL FACE (얼굴 전체)</option>
+            <option value="upper body / bust shot" selected>상반신 (버스트샷)</option>
+            <option value="full body">전신</option>
+            <option value="skin macro close-up">피부 클로즈업(매크로)</option>
+            <option value="hand + product close-up">손+제품 클로즈업</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-setting">배경/설정</label>
+          <select id="p-setting">
+            <option value="bathroom mirror selfie" selected>욕실 거울 셀피</option>
+            <option value="bedroom window daylight">침실·거실 창가 자연광</option>
+            <option value="home casual daily">집 안 캐주얼 데일리</option>
+            <option value="outdoor daylight cafe">카페·야외 데이라이트</option>
+            <option value="minimal white room">미니멀 화이트룸</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-camera">카메라 스타일</label>
+          <select id="p-camera">
+            <option value="selfie_natural" selected>자연광 셀피(스마트폰)</option>
+            <option value="studio_pro">스튜디오 전문 조명</option>
+            <option value="film_mood">필름 무드톤</option>
+            <option value="vlog_daily">데일리 브이로그톤</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-ratio">종횡비</label>
+          <select id="p-ratio">
+            <option value="9:16" selected>9:16 (세로 셀피)</option>
+            <option value="1:1">1:1 (정방형)</option>
+            <option value="4:5">4:5 (세로)</option>
+            <option value="16:9">16:9 (가로)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-concern">피부 고민 유형 <span style="font-weight:400;">(비포/애프터용)</span></label>
+          <select id="p-concern">
+            <option value="melasma" selected>기미(멜라스마)</option>
+            <option value="freckles">주근깨</option>
+            <option value="dark_spots">색소침착·다크스팟</option>
+            <option value="pores_texture">모공·피부결</option>
+            <option value="redness">홍조·민감성</option>
+            <option value="acne_scars">트러블·여드름 자국</option>
+            <option value="dark_circles">다크서클</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-severity">초기 심각도 <span style="font-weight:400;">(비포/애프터용)</span></label>
+          <select id="p-severity">
+            <option value="mild">경미</option>
+            <option value="moderate" selected>보통</option>
+            <option value="severe">심함</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-duration">총 경과 기간 <span style="font-weight:400;">(비포/애프터용)</span></label>
+          <select id="p-duration">
+            <option value="2 weeks">2주</option>
+            <option value="4 weeks">4주</option>
+            <option value="8 weeks" selected>8주</option>
+            <option value="12 weeks">12주</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="p-curve">개선 곡선 <span style="font-weight:400;">(비포/애프터용)</span></label>
+          <select id="p-curve">
+            <option value="fast in the early stage, then gradual and natural" selected>초반 빠름 (자연스러움)</option>
+            <option value="steady and gradual throughout">점진적</option>
+            <option value="subtle and gentle">완만</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="p-new">새 페르소나 생성</button>
+      <button class="btn" id="p-same">같은 얼굴 · 설정만 변경</button>
+      <button class="btn ghost" id="p-copy">전체 복사</button>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <div style="display:flex; align-items:center; gap:9px;">
+          <span class="badge accent">① BEFORE</span>
+          <p class="out-title">비포 프롬프트 <span>— 텍스트만 입력해서 생성</span></p>
+        </div>
+        <button class="copy-btn" data-copy="p-base">복사</button>
+      </div>
+      <div class="summary-line" id="p-summary-a"></div>
+      <pre class="out" id="p-base"></pre>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="p-before-gen">① BEFORE 이미지 생성</button>
+      </div>
+      <div class="card" id="p-before-image-card" hidden style="margin-top:14px; box-shadow:none; border:1px dashed var(--border, #ddd);">
+        <div class="out-head"><p class="out-title">생성된 BEFORE 이미지</p></div>
+        <div class="img-result" id="p-before-image-result"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <div style="display:flex; align-items:center; gap:9px;">
+          <span class="badge after">② AFTER</span>
+          <p class="out-title">애프터 프롬프트 <span>— ①번 이미지를 첨부한 뒤 함께 입력</span></p>
+        </div>
+        <button class="copy-btn" data-copy="p-followup">복사</button>
+      </div>
+      <pre class="out" id="p-followup"></pre>
+      <div class="field" style="margin-top:14px;">
+        <label for="p-after-refimg">참조 이미지 <span style="font-weight:400;">(선택 — 비워두면 방금 생성한 BEFORE 이미지를 자동 사용)</span></label>
+        <input type="file" id="p-after-refimg" accept="image/png,image/jpeg,image/webp">
+      </div>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="p-after-gen">② AFTER 이미지 생성</button>
+      </div>
+      <div class="card" id="p-after-image-card" hidden style="margin-top:14px; box-shadow:none; border:1px dashed var(--border, #ddd);">
+        <div class="out-head"><p class="out-title">생성된 AFTER 이미지</p></div>
+        <div class="img-result" id="p-after-image-result"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT PANEL -->
+  <section id="panel-product" class="panel">
+    <div class="tip">
+      아래에서 프롬프트를 완성한 뒤, 실제 제품 참고 사진을 첨부하고 "이미지 생성"을 누르면 이 화면에서 바로 결과 이미지가 나옵니다. (내부적으로 OpenAI 이미지 API를 호출합니다.)
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="field">
+          <label for="pr-brand">브랜드</label>
+          <select id="pr-brand">
+            <option value="sleeppore">슬립포어</option>
+            <option value="adco">아드코</option>
+            <option value="riar" selected>리아르</option>
+            <option value="paulinkalz">폴린칼츠</option>
+            <option value="competitor">경쟁사 비교군(멜라스마·미백)</option>
+            <option value="other">기타(직접입력)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pr-product">제품</label>
+          <select id="pr-product"></select>
+        </div>
+        <div class="field">
+          <label for="pr-shot">샷 타입</label>
+          <select id="pr-shot">
+            <option value="solo_studio">제품 단독 스튜디오컷</option>
+            <option value="lifestyle" selected>라이프스타일 연출컷</option>
+            <option value="texture_closeup">텍스처·성분 클로즈업</option>
+            <option value="packaging_set">패키지 세트컷</option>
+            <option value="model_hand">인물(손) + 제품 함께</option>
+            <option value="finger_texture">손가락 텍스처 스와치</option>
+            <option value="unboxing_shot">언박싱컷</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pr-bg">배경/무드</label>
+          <select id="pr-bg">
+            <option value="white_studio">미니멀 화이트 스튜디오</option>
+            <option value="wood_bedroom">내추럴 우드톤 침실</option>
+            <option value="clean_vanity">클린 화장대·욕실</option>
+            <option value="daily_life">데일리 라이프 공간</option>
+            <option value="french_derma">프렌치 더마코스메틱(대리석·골드)</option>
+            <option value="gradient_color">그라데이션 컬러 배경</option>
+            <option value="terrazzo_counter">테라조·스톤 카운터</option>
+            <option value="marble_vanity">대리석 화장대(거울 리플렉션)</option>
+            <option value="quilted_bedding">누빔 이불 위</option>
+            <option value="unboxing_scene">언박싱(에어캡·마룻바닥)</option>
+            <option value="editorial_flatlay">에디토리얼 플랫레이(책·식물·물컵)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pr-light">조명</label>
+          <select id="pr-light">
+            <option value="soft_natural">소프트 내추럴 라이트</option>
+            <option value="hard_studio">하드 스튜디오 라이트(디테일 강조)</option>
+            <option value="dawn_mood">새벽·노을 무드광</option>
+            <option value="ring_light">링라이트 클린광</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pr-angle">카메라 앵글</label>
+          <select id="pr-angle">
+            <option value="top_flatlay">탑뷰 플랫레이</option>
+            <option value="angle_45" selected>45도 앵글</option>
+            <option value="eye_level">정면 아이레벨</option>
+            <option value="macro">클로즈업 매크로</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pr-ratio">종횡비</label>
+          <select id="pr-ratio">
+            <option value="1024x1024" selected>1:1 (1024x1024)</option>
+            <option value="1024x1536">세로 (1024x1536)</option>
+            <option value="1536x1024">가로 (1536x1024)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px; flex-direction:row; align-items:center; gap:8px;">
+        <input type="checkbox" id="pr-handheld" style="width:16px; height:16px; margin:0;">
+        <label for="pr-handheld" style="margin:0;">에디토리얼 핸드헬드 무드 적용 <span style="font-weight:400; color:var(--text-muted);">— 살짝 기울어진 핸드헬드 앵글 + 배경 피사체 얕은 심도 블러</span></label>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="pr-extra">추가 디테일 (선택)</label>
+        <textarea id="pr-extra" placeholder="예: 로고는 골드 컬러로 강조, 옆에 유칼립투스 잎 소품 추가"></textarea>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="pr-refimg">참고 이미지 (실제 제품 사진, 여러 장 가능)</label>
+        <input type="file" id="pr-refimg" accept="image/png,image/jpeg,image/webp" multiple>
+        <div class="thumb-row" id="pr-thumbs"></div>
+        <p class="hint">라벨·용기 형태 정확도를 위해 실제 제품 사진을 첨부하는 걸 권장해요.</p>
+      </div>
+
+      <div class="badge-row" id="pr-badges"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="pr-gen">프롬프트만 생성</button>
+      <button class="btn primary" id="pr-image-gen">이미지 생성</button>
+      <button class="btn ghost" id="pr-copy">프롬프트 복사</button>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">완성된 실사 이미지 프롬프트</p>
+        <button class="copy-btn" data-copy="pr-out">복사</button>
+      </div>
+      <div class="summary-line" id="pr-summary"></div>
+      <pre class="out" id="pr-out"></pre>
+    </div>
+
+    <div class="card" id="pr-image-card" hidden>
+      <div class="out-head">
+        <p class="out-title">생성된 이미지</p>
+      </div>
+      <div class="img-result" id="pr-image-result"></div>
+    </div>
+  </section>
+
+  <!-- WRITER PANEL -->
+  <section id="panel-writer" class="panel">
+    <div class="tip">
+      이 탭은 서버의 <code>/api/write</code>를 호출해서 원고를 바로 생성합니다(별도 챗봇 창 필요 없음).
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="writer-project">프로젝트</label>
+        <select id="writer-project">
+          <option value="general" selected>일반 원고 (자유 주제)</option>
+          <option value="riar">리아르 · 루미넥신 앰플 (바이럴 후기)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ================= 리아르 · 루미넥신 앰플 전용 작가 ================= -->
+    <div id="writer-riar-block" hidden style="display:flex; flex-direction:column; gap:18px;">
+      <div class="tip">
+        <b>루미넥신 앰플 마스터 프롬프트</b> 기반 전용 작가입니다. 브랜드명("리아르") 미노출, 성분·효능 과장 금지, 대조군 비방 금지 등 규칙을 자동으로 지키고, 구매링크·광고 표시 문구는 생성 후 자동으로 붙습니다.
+      </div>
+
+      <div class="card">
+        <div class="grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="riar-keywords">키워드 / 주제 <span style="font-weight:400;">(한 줄에 한 건씩 — 1건만 써도 되고, 여러 줄 붙여넣으면 그 줄 수만큼 순서대로 전부 생성돼요)</span></label>
+            <textarea id="riar-keywords" rows="6" placeholder="한 줄에 한 건씩 적어주세요. '키워드 | 검색의도' 형식이고 검색의도는 생략 가능해요.
+
+예)
+기미 사라지는 크림 | 가격 비교
+색소침착 앰플 추천 | 부작용 걱정 해소
+정체기 극복 후기"></textarea>
+          </div>
+          <div class="field">
+            <label for="riar-intent">기본 검색의도 <span style="font-weight:400;">(선택 — 위에서 줄마다 검색의도를 안 적었을 때 공통 적용)</span></label>
+            <input type="text" id="riar-intent" placeholder="예: 가격 비교, 부작용 걱정 해소, 정체기 극복 후기">
+          </div>
+          <div class="field">
+            <label for="riar-trigger">매칭 트리거 템플릿</label>
+            <select id="riar-trigger">
+              <option value="auto" selected>자동 선택 (AI가 키워드·검색의도 보고 판단)</option>
+              <option value="자극발생형">자극발생형 (도미나크림 대조)</option>
+              <option value="정체기형">정체기형 (멜라토닝크림 대조)</option>
+              <option value="병행시너지형">병행시너지형 (홈케어 기초템 병행)</option>
+              <option value="비교탐색형">비교탐색형 (여러 제품 비교)</option>
+              <option value="시술대안형">시술대안형 (레이저 시술 대안)</option>
+              <option value="정보형">정보형 (설명 콘텐츠, 후기 형식 아님)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="riar-persona">페르소나 설명</label>
+            <input type="text" id="riar-persona" value="30대 초반, 미혼 사무직 / 담백 존댓말">
+          </div>
+          <div class="field">
+            <label for="riar-emoji-tone">이모티콘 톤</label>
+            <select id="riar-emoji-tone">
+              <option value="담백형" selected>담백형 (1~2회)</option>
+              <option value="감정형">감정형 (3~5회)</option>
+              <option value="정보전달형">정보전달형 (0~1회)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="riar-minlen">목표 글자수 최소</label>
+            <input type="text" id="riar-minlen" value="1600">
+          </div>
+          <div class="field">
+            <label for="riar-maxlen">목표 글자수 최대</label>
+            <input type="text" id="riar-maxlen" value="1900">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="riar-link">구매링크 (UTM) <span style="font-weight:400;">— 선택, 넣으면 광고 표시 문구 위에 자동으로 붙어요. 매번 새 링크로 바꿔서 붙여넣으세요</span></label>
+            <input type="text" id="riar-link" placeholder="https://smartstore.naver.com/lear_kr/products/...?utm_source=...">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="riar-note">비고 <span style="font-weight:400;">(선택 — 경쟁사명, 성분 매칭 등 특이사항)</span></label>
+            <textarea id="riar-note" placeholder="예: 이번 편은 20대 타겟, 주근깨 위주로"></textarea>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+              <input type="checkbox" id="riar-no-disclosure" style="width:auto;">
+              광고 표시 문구·구매링크 생략 (교육/내부 자료용 — <b>실제로 발행할 원고에는 반드시 체크 해제</b>해주세요)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="riar-gen">원고 생성</button>
+        <button class="btn ghost" id="riar-copy">마지막 결과 복사</button>
+        <span class="hint" id="riar-batch-progress"></span>
+      </div>
+
+      <div id="riar-batch-status"></div>
+
+      <div id="riar-checks"></div>
+
+      <div class="card">
+        <div class="out-head">
+          <p class="out-title">생성된 원고 <span id="riar-charcount"></span></p>
+          <button class="copy-btn" data-copy="riar-out">복사</button>
+        </div>
+        <pre class="out" id="riar-out" style="max-height:520px;">왼쪽 옵션을 고르고 "원고 생성"을 누르면 여기에 바로 원고가 나옵니다. 구매링크·광고 표시 문구는 자동으로 맨 끝에 붙습니다.</pre>
+      </div>
+    </div>
+
+    <!-- ================= 일반 원고 (자유 주제) ================= -->
+    <div id="writer-general-block" style="display:flex; flex-direction:column; gap:18px;">
+      <div class="card">
+        <div class="grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="w-topic">주제 / 제품 / 핵심 소재</label>
+            <textarea id="w-topic" placeholder="예: 슬립포어 냉감패드 — 여름철 숙면템, 실사용 후기 형태로"></textarea>
+          </div>
+          <div class="field">
+            <label for="w-persona">필자 페르소나</label>
+            <select id="w-persona">
+              <option value="30대 직장인 여성, 화장품 성분을 꼼꼼히 따지는 편, 친구한테 말하듯 편하게 쓰는 스타일" selected>30대 직장인 여성 (성분 덕후)</option>
+              <option value="20대 후반 여성, 감성적이고 솔직한 뷰티 블로거, 데일리 브이로그 느낌으로 쓰는 스타일">20대 후반 뷰티 블로거</option>
+              <option value="40대 기혼 여성, 아이 키우며 자기 관리하는 워킹맘, 담백하고 현실적인 말투">40대 워킹맘</option>
+              <option value="약사·피부과 정보에 관심 많은 예민성 피부 고민러, 성분표를 항상 확인하는 꼼꼼한 성격">예민성 피부 고민러</option>
+              <option value="custom">직접 입력</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-tone">말투</label>
+            <select id="w-tone">
+              <option value="친근한 반말 섞인 구어체, 이모티콘 없이" selected>친근한 반말체</option>
+              <option value="조곤조곤한 존댓말, 차분하고 정중한 톤">조곤조곤 존댓말</option>
+              <option value="솔직하고 직설적인 톤, 장단점을 분명히 말하는 스타일">솔직·직설 톤</option>
+              <option value="차분하고 정보 전달에 집중하는 담백한 톤">담백한 정보 전달톤</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-quote">인용구 활용</label>
+            <select id="w-quote">
+              <option value="yes" selected>사용 (전문가 코멘트·후기 인용구 1~2개 자연스럽게 삽입)</option>
+              <option value="no">사용 안 함</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="w-purpose">글의 목적</label>
+            <input type="text" id="w-purpose" value="검색 의도 충족 및 SEO 최적화" placeholder="예: 검색 의도 충족 및 SEO/GEO">
+          </div>
+          <div class="field">
+            <label for="w-image-comp">이미지 구성</label>
+            <select id="w-image-comp">
+              <option value="auto11" selected>자동 구성 (11장 이상)</option>
+              <option value="mid">적당히 (5~7장)</option>
+              <option value="few">최소화 (2~3장)</option>
+              <option value="none">이미지 없음 (텍스트만)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-minlen">글자수 최소</label>
+            <input type="text" id="w-minlen" value="1500">
+          </div>
+          <div class="field">
+            <label for="w-maxlen">글자수 최대</label>
+            <input type="text" id="w-maxlen" value="1900">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:14px;" id="w-custom-persona-wrap" hidden>
+          <label for="w-custom-persona">페르소나 직접 입력</label>
+          <textarea id="w-custom-persona" placeholder="예: 30대 초반 여성, 예민성 피부, 화장품 성분표를 꼭 확인하는 성격, 신뢰가는 담백한 말투"></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="w-gen">원고 생성</button>
+        <button class="btn ghost" id="w-copy">복사</button>
+      </div>
+
+      <div class="card">
+        <div class="out-head">
+          <p class="out-title">생성된 원고 <span id="w-charcount"></span></p>
+          <button class="copy-btn" data-copy="w-out">복사</button>
+        </div>
+        <pre class="out" id="w-out" style="max-height:520px;">왼쪽 옵션을 고르고 "원고 생성"을 누르면 여기에 바로 원고가 나옵니다.</pre>
+      </div>
+    </div>
+  </section>
+  </main>
+</div>
+
+<div class="toast" id="toast">복사되었습니다</div>
+
+<script>
+(function(){
+  "use strict";
+
+  function $(id){ return document.getElementById(id); }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ---------- 글 관리 / 작업 기록 (이 브라우저 세션 동안만 유지되는 간단한 기록) ----------
+  var postmanageList = $("postmanage-list");
+  var postmanageEmpty = $("postmanage-empty");
+  var worklogList = $("worklog-list");
+  var worklogEmpty = $("worklog-empty");
+
+  function workStatusMeta(status){
+    if(status === "running") return { cls: "running", label: "실행 중" };
+    if(status === "fail") return { cls: "fail", label: "실패" };
+    return { cls: "done", label: "완료" };
+  }
+
+  function nowTimeStr(){
+    return new Date().toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  }
+
+  // status: "running" | "done" (기본값) | "fail". 반환된 row는 updateWorkStatus로 나중에 갱신할 수 있다
+  // (예: 생성 시작 시 "running"으로 기록해두고, 끝나면 같은 행을 "done"/"fail"로 업데이트).
+  function logWork(label, detail, status){
+    if(!worklogList) return null;
+    worklogEmpty.hidden = true;
+    var meta = workStatusMeta(status);
+    var row = document.createElement("div");
+    row.className = "worklog-row";
+    row.innerHTML =
+      "<div class='row-head'>" +
+        "<span class='row-title'>" + escapeHtml(label) + "</span>" +
+        "<span class='badge " + meta.cls + "'>" + meta.label + "</span>" +
+      "</div>" +
+      (detail ? "<p class='row-detail'>" + escapeHtml(detail) + "</p>" : "") +
+      "<p class='row-time'>" + nowTimeStr() + "</p>";
+    worklogList.prepend(row);
+    return row;
+  }
+
+  function updateWorkStatus(row, status, detail){
+    if(!row) return;
+    var meta = workStatusMeta(status);
+    var badge = row.querySelector(".badge");
+    if(badge){ badge.className = "badge " + meta.cls; badge.textContent = meta.label; }
+    var timeEl = row.querySelector(".row-time");
+    var detailEl = row.querySelector(".row-detail");
+    if(detail){
+      if(detailEl){
+        detailEl.textContent = detail;
+      } else {
+        var p = document.createElement("p");
+        p.className = "row-detail";
+        p.textContent = detail;
+        row.insertBefore(p, timeEl);
+      }
+    } else if(detailEl){
+      detailEl.remove();
+    }
+    if(timeEl) timeEl.textContent = nowTimeStr();
+  }
+
+  function addPostToManage(topic, text){
+    if(!postmanageList) return;
+    postmanageEmpty.hidden = true;
+    var card = document.createElement("div");
+    card.className = "card";
+    var time = new Date().toLocaleString("ko-KR");
+    var preview = text.length > 120 ? text.slice(0,120) + "…" : text;
+    var safeTopic = topic || "(제목 없음)";
+    card.innerHTML =
+      "<div class='out-head'><p class='out-title'>" + escapeHtml(safeTopic) + " <span>— " + text.length + "자 · " + time + "</span></p></div>" +
+      "<p class='hint' style='margin:0 0 10px;'>" + escapeHtml(preview) + "</p>";
+    var toggleBtn = document.createElement("button");
+    toggleBtn.className = "btn ghost";
+    toggleBtn.textContent = "전체 보기";
+    var full = document.createElement("pre");
+    full.className = "out";
+    full.style.marginTop = "10px";
+    full.textContent = text;
+    full.hidden = true;
+    toggleBtn.addEventListener("click", function(){
+      full.hidden = !full.hidden;
+      toggleBtn.textContent = full.hidden ? "전체 보기" : "접기";
+    });
+    card.appendChild(toggleBtn);
+    card.appendChild(full);
+    postmanageList.prepend(card);
+  }
+
+  // ---------- tabs ----------
+  var tabs = document.querySelectorAll(".tab");
+  var crumbEl = $("crumb-current");
+  tabs.forEach(function(t){
+    t.addEventListener("click", function(){
+      tabs.forEach(function(o){ o.classList.remove("active"); o.setAttribute("aria-selected","false"); });
+      t.classList.add("active"); t.setAttribute("aria-selected","true");
+      document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
+      $("panel-" + t.dataset.tab).classList.add("active");
+      if(crumbEl) crumbEl.textContent = t.dataset.label || t.textContent;
+    });
+  });
+
+  // ---------- toast ----------
+  var toastEl = $("toast"), toastTimer = null;
+  function showToast(msg){
+    toastEl.textContent = msg || "복사되었습니다";
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 1600);
+  }
+  function copyText(text){
+    function done(ok){ showToast(ok ? "복사되었습니다" : "복사에 실패했습니다"); }
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ done(true); }).catch(function(){ fallback(); });
+      } else { fallback(); }
+    }catch(e){ fallback(); }
+    function fallback(){
+      try{
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        var ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        done(ok);
+      }catch(e2){ done(false); }
+    }
+  }
+  document.querySelectorAll(".copy-btn").forEach(function(b){
+    b.addEventListener("click", function(){ copyText($(b.dataset.copy).textContent); });
+  });
+
+  // ================= PERSONA =================
+  var HAIR = [
+    "shoulder-length soft wavy dark brown hair with face-framing layers",
+    "sleek straight black long hair, center-parted",
+    "natural black bob haircut with side-swept bangs",
+    "loosely tied low ponytail with a few loose strands framing the face",
+    "short layered black hair just above the shoulders, slightly tousled"
+  ];
+  var FACE = [
+    "an oval face shape with soft cheekbones",
+    "a heart-shaped face with a gently pointed chin",
+    "a round face shape with soft full cheeks",
+    "a straight face structure with a defined jawline"
+  ];
+  var FEATURE = [
+    "a small mole just under the left eye, clear glass-skin complexion",
+    "light natural freckles across the nose bridge, warm dark brown eyes",
+    "naturally arched eyebrows and a warm friendly smile, soft rounded nose tip",
+    "subtle double eyelids and a calm neutral expression, smooth even skin"
+  ];
+  var CAMERA_EN = {
+    selfie_natural: "shot like a natural smartphone selfie, soft ambient light, slightly candid framing, realistic phone-camera look, not overly polished or airbrushed",
+    studio_pro: "professional studio portrait photography, controlled key + fill lighting, sharp commercial-grade clarity",
+    film_mood: "film-photography mood with soft grain, warm color grading, gentle cinematic tone",
+    vlog_daily: "casual daily-vlog style, handheld natural framing, authentic unposed feel"
+  };
+  var SETTING_EN = {
+    "bathroom mirror selfie": "a real home bathroom, taken as a mirror selfie, visible bathroom vanity lighting and a hint of a shower curtain or bathroom fixtures softly out of focus in the background, wearing a simple loungewear or tank top, completely unstaged and candid",
+    "bedroom window daylight": "a home bedroom or living room near a window with soft natural daylight falling on the face, wearing a casual pajama or loungewear top, a blurred dresser or shelf softly visible behind, relaxed unstaged mood",
+    "home casual daily": "a relaxed everyday home setting (living room or hallway), plain-colored casual top, soft ambient indoor light, candid unposed feel",
+    "outdoor daylight cafe": "outdoor or cafe window-seat setting in soft daylight",
+    "minimal white room": "minimal seamless white room background, soft even light"
+  };
+  var PURPOSE_EN = {
+    before_after: "a skincare before/after progression photo documenting visible skin improvement over time, for a brightening-serum marketing series",
+    lifestyle: "a natural lifestyle daily photo for brand content, relaxed and authentic mood",
+    product_use: "a photo of the model actively using or applying the product, natural hand gesture, product clearly visible",
+    unboxing: "a candid unboxing / first-impression style photo of the model together with the product packaging"
+  };
+  var SKIN_CONCERN_EN = {
+    melasma: {
+      before: "visible melasma — brownish, blotchy, roughly symmetrical pigmentation patches across both cheeks, the forehead and above the upper lip, clearly visible in close-up lighting",
+      after: "the melasma patches visibly faded and far less defined, cheeks noticeably brighter and more even in tone, only faint traces of pigmentation remaining"
+    },
+    freckles: {
+      before: "numerous natural freckles scattered densely across the nose bridge and both cheeks, warm brown tone, clearly visible in close-up",
+      after: "the freckles visibly lightened and reduced in density, overall skin tone noticeably more even, a few faint freckles still visible for a natural result"
+    },
+    dark_spots: {
+      before: "visible dark spots and uneven pigmentation (post-acne marks and sun spots) scattered across the cheeks and jawline",
+      after: "the dark spots visibly faded and reduced, skin tone significantly more even and brighter overall"
+    },
+    pores_texture: {
+      before: "visibly enlarged pores and uneven, slightly rough skin texture on the nose and cheeks, a somewhat dull complexion",
+      after: "pores visibly minimized, noticeably smoother and more refined skin texture, healthy natural radiance"
+    },
+    redness: {
+      before: "visible redness and blotchy red patches on the cheeks and around the nose, sensitive-looking irritated skin",
+      after: "the redness visibly calmed and reduced, skin tone noticeably more even-toned and less reactive"
+    },
+    acne_scars: {
+      before: "visible acne scars and post-inflammatory red/brown marks on the cheeks and jawline, uneven skin texture",
+      after: "the acne scars visibly faded, skin texture noticeably smoother and more even"
+    },
+    dark_circles: {
+      before: "visible dark circles and under-eye discoloration, a slightly tired, shadowed under-eye area",
+      after: "the dark circles visibly brightened and reduced, the under-eye area noticeably fresher and more rested-looking"
+    }
+  };
+  var SEVERITY_EN = { mild: "mild", moderate: "moderate", severe: "pronounced, clearly noticeable" };
+
+  var FRAMING_LABEL = {
+    "full face": "FULL FACE",
+    "upper body / bust shot": "상반신",
+    "full body": "전신",
+    "skin macro close-up": "피부 클로즈업(매크로)",
+    "hand + product close-up": "손+제품 클로즈업"
+  };
+  var FRAMING_EXTRA_EN = {
+    "skin macro close-up": "an extreme macro close-up filling the entire frame with skin on the cheek/under-eye/nose area — pores, fine texture and pigmentation clearly visible in dermatological macro-photography style, shallow depth of field, no full face or hair in frame"
+  };
+
+  var persona = null; // fixed identity seed
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function newPersona(){
+    persona = { hair: pick(HAIR), face: pick(FACE), feature: pick(FEATURE) };
+  }
+
+  function buildPersonaPrompts(){
+    var purpose = $("p-purpose").value;
+    var gender = $("p-gender").value === "male" ? "man" : "woman";
+    var genderKo = $("p-gender").value === "male" ? "남성" : "여성";
+    var age = $("p-age").value;
+    var skin = $("p-skin").value;
+    var framing = $("p-framing").value;
+    var setting = $("p-setting").value;
+    var camera = $("p-camera").value;
+    var ratio = $("p-ratio").value;
+    var duration = $("p-duration").value;
+    var curve = $("p-curve").value;
+    var concern = $("p-concern").value;
+    var severity = $("p-severity").value;
+
+    if(!persona) newPersona();
+
+    var concernClause = "";
+    if(purpose === "before_after"){
+      concernClause = " Skin concern — must be clearly and unmistakably visible in this BEFORE photo, not subtle or borderline: " +
+        SEVERITY_EN[severity] + " " + SKIN_CONCERN_EN[concern].before + ".";
+    }
+
+    var framingText = framing + (FRAMING_EXTRA_EN[framing] ? " — " + FRAMING_EXTRA_EN[framing] : "");
+
+    var base = "A hyper-realistic photo of a single Korean " + gender + " in their " + age +
+      ", " + skin + " skin tone. " + persona.hair + ", " + persona.face + ", " + persona.feature + ". " +
+      CAMERA_EN[camera] + ". Framing: " + framingText + ". Setting: " + SETTING_EN[setting] + ". " +
+      "Context: " + PURPOSE_EN[purpose] + "." + concernClause + " Aspect ratio " + ratio + ". " +
+      "Photorealistic skin with natural texture and visible pores, no airbrushing, no plastic/AI-smooth skin. " +
+      "This exact face, hairstyle and skin tone must remain identical across a reused photo series.";
+
+    var variation;
+    if(purpose === "before_after"){
+      if(framing === "skin macro close-up"){
+        variation = "show " + SKIN_CONCERN_EN[concern].after + ", as the result of " + duration + " of consistent brightening-serum use on this same patch of skin. Improvement pace: " + curve + ". To look like an authentic follow-up macro photo taken weeks later — not a duplicated image — use a very slightly different crop position/angle on the same skin area and vary the lighting a touch (e.g. a slightly different angle of natural light). Keep the exact same skin tone base, pore pattern and any mole/freckle positions identical (only the targeted concern improves).";
+      } else {
+        variation = "show " + SKIN_CONCERN_EN[concern].after + ", as the result of " + duration + " of consistent brightening-serum use. Improvement pace: " + curve + ". To look like an authentic follow-up photo taken weeks later — NOT a duplicated or obviously AI-paired image — change her into a different casual top or loungewear (different color/pattern), use a naturally different head angle, pose and slightly different framing/crop than the reference photo, and vary the lighting mood a little (e.g. a different time of day or a different spot in the same home). Keep the exact same face, hairstyle, hair length and skin tone base identical.";
+      }
+    } else if(purpose === "product_use"){
+      variation = "show the same person now applying or holding the product with a natural hand gesture, same pose family and expression style as the reference image.";
+    } else if(purpose === "unboxing"){
+      variation = "show the same person with a genuinely curious, pleasantly surprised expression while opening or examining the product packaging, same setting and lighting as the reference image.";
+    } else {
+      variation = "show the same person in a new natural moment consistent with the daily-lifestyle mood of the reference image — same setting, same lighting style, only pose and expression vary slightly.";
+    }
+
+    var continuityClause = (purpose === "before_after")
+      ? ("Keep the same aspect ratio (" + ratio + ") and the same natural smartphone-selfie camera style as the reference — but the exact pose, angle, crop, outfit and lighting mood should look naturally different, as if taken on a different day, not a copy of the reference photo.")
+      : ("Keep camera angle, framing, lighting style and aspect ratio (" + ratio + ") consistent with the reference image.");
+
+    var followup = "Using the attached reference image as the exact same person (identical face, identical " + persona.hair.split(",")[0] + ", identical skin tone, identical proportions — do not change identity), generate a new image where you " + variation + " " + continuityClause;
+
+    $("p-base").textContent = base;
+    $("p-followup").textContent = followup;
+    var concernSummary = purpose === "before_after" ? (" · 고민: " + $("p-concern").selectedOptions[0].text + "(" + $("p-severity").selectedOptions[0].text + ")") : "";
+    $("p-summary-a").textContent = "용도: " + $("p-purpose").selectedOptions[0].text + " · 성별: " + genderKo + " · 연령대: " + $("p-age").selectedOptions[0].text + " · 프레이밍: " + FRAMING_LABEL[framing] + concernSummary + " · 비율 " + ratio;
+  }
+
+  $("p-new").addEventListener("click", function(){ newPersona(); buildPersonaPrompts(); showToast("새 페르소나를 생성했습니다"); });
+  $("p-same").addEventListener("click", function(){ buildPersonaPrompts(); showToast("같은 얼굴로 설정을 반영했습니다"); });
+  $("p-copy").addEventListener("click", function(){
+    copyText("[BASE 앵커 프롬프트]\n" + $("p-base").textContent + "\n\n[후속 컷 지시문]\n" + $("p-followup").textContent);
+  });
+
+  // ================= PRODUCT =================
+  var PRODUCTS = {
+    sleeppore: [
+      {value:"cooling_pad", label:"냉감패드", desc:"통기성 냉감 소재 매트리스 패드"},
+      {value:"pomong_pillow", label:"포몽베개", desc:"경추 지지 기능성 베개"},
+      {value:"custom", label:"기타(직접 입력)"}
+    ],
+    adco: [
+      {value:"duofiber", label:"듀오파이버정", desc:"식이섬유 보충 정제형 건강기능식품"},
+      {value:"custom", label:"기타(직접 입력)"}
+    ],
+    riar: [
+      {value:"luminexin", label:"루미넥신 앰플 (LE:AR Spot Corrector)", desc:"트라넥삼산·나이아신아마이드 함유 브라이트닝 세럼 앰플, 30ml"},
+      {value:"custom", label:"기타(직접 입력)"}
+    ],
+    paulinkalz: [
+      {value:"custom", label:"제품명 직접 입력"}
+    ],
+    competitor: [
+      {value:"easydew_ampoule", label:"이지듀 DW-EGF 멜라토닝 원데이 앰플", desc:"Easydew DW-EGF Melatoning Oneday Ampoule"},
+      {value:"easydew_cream", label:"이지듀 DW-EGF 멜라 글루타치온 크림", desc:"Easydew DW-EGF Mela Glutathione Cream — sh-Oligopeptide-1(DW-EGF), Glutathione, Niacinamide, Bisabolol"},
+      {value:"domina_cream", label:"도미나 크림(히드로퀴논)", desc:"태극제약, 기미·주근깨·검은반점, 60g, 일반의약품"},
+      {value:"dominas_cream", label:"도미나스 크림", desc:"태극제약, 50ml, 미백·주름개선 기능성 화장품(히드로퀴논 함유 '도미나 크림'과는 별도 코스메틱 라인)"},
+      {value:"wizardjoseon_balm", label:"위자드 조선 누룩밤", desc:"Wizard Joseon Nuruk Balm — Brightening Magic Cream"},
+      {value:"melanon_cream", label:"멜라논크림", desc:"동아에스티, 기미주근깨·갈색반점 치료제, 전문의약품, 10g"},
+      {value:"melatoning_cream", label:"멜라토닝크림", desc:"동아제약, 히드로퀴논(USP) 2%, 30g/50g, 기미·주근깨·간반·검버섯 등 과색소침착 개선, 일반의약품"},
+      {value:"melanosa_cream", label:"멜라노사크림", desc:"동아제약, 히드로퀴논(USP) 4%, 30g, 기미·주근깨·간반·검버섯 등 과색소침착 개선, 일반의약품"},
+      {value:"custom", label:"기타(직접 입력)"}
+    ],
+    other: [
+      {value:"custom", label:"제품명 직접 입력"}
+    ]
+  };
+  var BRAND_LABEL = { sleeppore:"슬립포어", adco:"아드코", riar:"리아르", paulinkalz:"폴린칼츠", competitor:"경쟁사 비교군", other:"기타 브랜드" };
+  var BRAND_MOOD_DEFAULT = { sleeppore:"wood_bedroom", adco:"white_studio", riar:"french_derma", paulinkalz:"white_studio", competitor:"marble_vanity", other:"white_studio" };
+  var BRAND_KEYWORDS = {
+    sleeppore: ["쿨링/통기", "숙면", "우드톤 침실"],
+    adco: ["헬스 케어", "데일리 섭취", "클린 화이트"],
+    riar: ["French Beauty Science", "Brightening", "Derma Care"],
+    paulinkalz: ["칼슘 보충", "데일리 건강"],
+    competitor: ["내부 교육자료용", "비교군", "실제 제품 참고 이미지 첨부 권장"],
+    other: []
+  };
+
+  var SHOT_EN = {
+    solo_studio: "a professional solo product shot on a clean seamless background, e-commerce hero-image style, sharp focus on product form and label, no props",
+    lifestyle: "a lifestyle scene showing the product naturally placed or in use within a realistic everyday setting, candid and authentic mood",
+    texture_closeup: "an extreme macro close-up highlighting the product's texture, material, or active formula/ingredient, shallow depth of field, glossy realistic detail",
+    packaging_set: "a neatly arranged flat-lay set shot showing the full packaging — front label, side label, and included components — styled together",
+    model_hand: "a well-groomed hand model holding or applying the product naturally, showing true-to-life scale and interaction",
+    finger_texture: "a close-up of the cream/serum freshly squeezed or swatched onto a well-groomed fingertip, showing the true texture, consistency and sheen of the formula, the product bottle softly visible out of focus in the background",
+    unboxing_shot: "a candid unboxing moment — hands lifting the product out of its shipping box, protective bubble wrap and open box flaps visible in frame, genuine first-look energy, not overly styled"
+  };
+  var BG_EN = {
+    white_studio: "a real seamless white studio backdrop (actual paper/vinyl sweep, not a digital gradient) with a soft, slightly uneven shadow beneath the product, the way an actual studio shoot looks",
+    wood_bedroom: "a real wood-tone bedroom setting with authentic wood grain and softly rumpled linens visible in the background, cozy morning atmosphere, shot like an actual lifestyle photo",
+    clean_vanity: "an actual marble or stone bathroom vanity/dresser surface with real veining and a couple of small, believable everyday items nearby, minimal skincare-shelf styling",
+    daily_life: "a realistic, lived-in daily-life environment (desk, kitchen counter, or bag interior) matching how the product is actually used, with ordinary small clutter that makes it feel like a real photo, not a staged set",
+    french_derma: "a real marble surface with authentic, irregular veining (not a perfect CGI pattern), styled with a couple of small champagne-gold accent objects and a single fresh botanical prop such as a eucalyptus leaf — an actual tabletop still-life set, photographed for real, not digitally rendered",
+    gradient_color: "a soft studio color backdrop (an actual colored paper sweep under real light, not a flat digital gradient) that complements the product's packaging colors",
+    terrazzo_counter: "a real terrazzo or natural stone countertop surface with authentic irregular chip/fleck pattern, product resting directly on the actual stone texture, the way a real kitchen or bathroom counter photo looks",
+    marble_vanity: "an actual marble bathroom vanity countertop with a mirror behind it, the mirror reflection and a couple of other everyday bottles/products softly out of focus in the background, real bathroom-shelf styling, not a staged studio set",
+    quilted_bedding: "the product resting on an actual quilted duvet or comforter, soft fabric texture and natural stitching visible, cozy unstaged bedroom morning feel",
+    unboxing_scene: "a real unboxing scene on a wood floor, the shipping box, crumpled protective bubble wrap and packing materials scattered naturally around the product, authentic just-opened moment, not styled",
+    editorial_flatlay: "an editorial magazine-style flat-lay on a real surface, styled together with a book, a small potted plant and a glass of water as supporting props, relaxed curated-shelf aesthetic, shot for real, not digitally composited"
+  };
+  var HANDHELD_CLAUSE = "Shot from a slightly tilted, casual handheld camera angle rather than a perfectly leveled tripod shot — a small natural tilt as if someone just picked up their phone or camera to take the photo. Any other objects, props or surfaces in the background are rendered with a shallow depth of field, softly and naturally out of focus, keeping full sharp focus only on the product itself.";
+  var LIGHT_EN = {
+    soft_natural: "soft natural window light the way it actually falls indoors — gentle, slightly uneven diffused shadows, no dramatic sunbeam streaks or stylized light-ray effects",
+    hard_studio: "controlled lighting from a real softbox and reflector setup, crisp but natural highlights with realistic falloff — not an artificial CGI glow or perfectly even light",
+    dawn_mood: "warm, soft golden-hour ambient light like an actual late-afternoon photo — subtle warmth, not an exaggerated or stylized light beam",
+    ring_light: "clean, even ring-light illumination as used in real product photography — minimal shadow, catalog-clean, but still reads as an actual photograph, not a synthetic render"
+  };
+  var ANGLE_EN = {
+    top_flatlay: "top-down flat-lay camera angle",
+    angle_45: "45-degree three-quarter camera angle",
+    eye_level: "straight-on eye-level front angle",
+    macro: "extreme macro close-up angle"
+  };
+  var REALISM_CLAUSE = "Shot on a real camera for an actual commercial product photoshoot — not a 3D render, not CGI, not a digital illustration. Natural photographic detail with subtle authentic imperfections: a slightly uneven shadow, a faint real-world reflection, natural material texture. Avoid the overly polished 'AI-generated' look — no glossy synthetic sheen, no perfectly symmetric dramatic light rays, no unnaturally flawless surfaces. It should be indistinguishable from a real photograph taken by a product photographer.";
+
+  function renderProductOptions(){
+    var brand = $("pr-brand").value;
+    var list = PRODUCTS[brand];
+    var sel = $("pr-product");
+    sel.innerHTML = "";
+    list.forEach(function(p){
+      var o = document.createElement("option");
+      o.value = p.value; o.textContent = p.label; o.dataset.desc = p.desc || "";
+      sel.appendChild(o);
+    });
+    $("pr-bg").value = BRAND_MOOD_DEFAULT[brand] || "white_studio";
+    renderBadges(brand);
+  }
+
+  function renderBadges(brand){
+    var row = $("pr-badges");
+    row.innerHTML = "";
+    var kws = BRAND_KEYWORDS[brand] || [];
+    kws.forEach(function(k, i){
+      var s = document.createElement("span");
+      s.className = "badge" + (i === 0 ? " accent" : "");
+      s.textContent = k;
+      row.appendChild(s);
+    });
+  }
+
+  $("pr-brand").addEventListener("change", renderProductOptions);
+
+  $("pr-product").addEventListener("change", function(){
+    var opt = $("pr-product").selectedOptions[0];
+    if(opt && opt.value === "custom"){
+      var current = $("pr-extra").value;
+      if(!current || current.indexOf("제품명:") !== 0){
+        $("pr-extra").value = "제품명: \n" + current;
+      }
+      $("pr-extra").focus();
+    }
+  });
+
+  function syncCustomName(){
+    var opt = $("pr-product").selectedOptions[0];
+    if(opt && opt.value === "custom"){
+      var v = $("pr-extra").value;
+      var m = v.match(/^제품명:\s*(.+)/m);
+      window.__customName = m ? m[1].trim() : "";
+    } else {
+      window.__customName = "";
+    }
+  }
+  $("pr-extra").addEventListener("input", syncCustomName);
+
+  function buildProductPromptFinal(){
+    syncCustomName();
+    var brand = $("pr-brand").value;
+    var brandLabel = BRAND_LABEL[brand];
+    var prodOpt = $("pr-product").selectedOptions[0];
+    var isCustom = !prodOpt || prodOpt.value === "custom";
+    var prodLabel = prodOpt ? prodOpt.textContent : "";
+    var prodDesc = prodOpt ? prodOpt.dataset.desc : "";
+    var shot = $("pr-shot").value;
+    var bg = $("pr-bg").value;
+    var light = $("pr-light").value;
+    var angle = $("pr-angle").value;
+    var ratio = $("pr-ratio").value;
+    var handheld = $("pr-handheld").checked;
+    var extraRaw = $("pr-extra").value.trim();
+    var extra = extraRaw.replace(/^제품명:\s*.*(\n|$)/m, "").trim();
+
+    var nameForPrompt = isCustom ? (window.__customName || (brandLabel + " 신제품")) : prodLabel;
+    var descNote = (!isCustom && prodDesc) ? " — " + prodDesc : "";
+
+    var text = 'Professional e-commerce product photography of "' + nameForPrompt + '" (' + brandLabel + ' brand' + descNote + '). ' +
+      SHOT_EN[shot] + ". Background: " + BG_EN[bg] + ". Lighting: " + LIGHT_EN[light] + ". Camera: " + ANGLE_EN[angle] + ". " +
+      "Ultra-realistic textures and materials, true-to-life color accuracy, commercial catalog quality, sharp focus. " +
+      REALISM_CLAUSE +
+      (handheld ? " " + HANDHELD_CLAUSE : "") +
+      (extra ? " Additional direction: " + extra + "." : "");
+
+    $("pr-out").textContent = text;
+    $("pr-summary").textContent = "브랜드: " + brandLabel + " · 제품: " + nameForPrompt + " · 샷: " + $("pr-shot").selectedOptions[0].text + " · 배경: " + $("pr-bg").selectedOptions[0].text + (handheld ? " · 핸드헬드 무드 ON" : "");
+    return text;
+  }
+
+  $("pr-gen").addEventListener("click", function(){ buildProductPromptFinal(); showToast("프롬프트를 생성했습니다"); });
+  $("pr-copy").addEventListener("click", function(){ copyText($("pr-out").textContent); });
+
+  // reference image thumbnails
+  $("pr-refimg").addEventListener("change", function(){
+    var row = $("pr-thumbs");
+    row.innerHTML = "";
+    Array.prototype.forEach.call(this.files, function(f){
+      var img = document.createElement("img");
+      img.src = URL.createObjectURL(f);
+      row.appendChild(img);
+    });
+  });
+
+  // ---- real image generation via /api/image ----
+  var imgGenBtn = $("pr-image-gen");
+  var imgCard = $("pr-image-card");
+  var imgResult = $("pr-image-result");
+
+  imgGenBtn.addEventListener("click", async function(){
+    var prompt = buildProductPromptFinal();
+    var size = $("pr-ratio").value;
+    var files = $("pr-refimg").files;
+    var productLabel = ($("pr-product") && $("pr-product").selectedOptions[0]) ? $("pr-product").selectedOptions[0].textContent : "";
+
+    imgGenBtn.disabled = true;
+    var originalLabel = imgGenBtn.textContent;
+    imgGenBtn.textContent = "생성 중... (최대 1분)";
+    imgCard.hidden = false;
+    imgResult.innerHTML = "<p class='hint'>이미지를 생성하고 있어요...</p>";
+    var workRow = logWork("제품 실사 이미지 생성", productLabel, "running");
+
+    try{
+      var form = new FormData();
+      form.append("prompt", prompt);
+      form.append("size", size);
+      Array.prototype.forEach.call(files, function(f){ form.append("image", f, f.name); });
+
+      var res = await fetch("/api/image", { method: "POST", body: form });
+      var data = await res.json();
+
+      if(!res.ok || data.error){
+        imgResult.innerHTML = "<p class='hint' style='color:var(--danger);'>생성 실패: " + (data.message || data.error || res.statusText) + "</p>";
+        updateWorkStatus(workRow, "fail", data.message || data.error || res.statusText);
+        return;
+      }
+
+      var src = "data:image/png;base64," + data.image_base64;
+      imgResult.innerHTML = "";
+      var img = document.createElement("img");
+      img.src = src;
+      imgResult.appendChild(img);
+      var dl = document.createElement("a");
+      dl.href = src;
+      dl.download = "product_image.png";
+      dl.className = "btn";
+      dl.textContent = "이미지 다운로드";
+      imgResult.appendChild(dl);
+      showToast("이미지 생성 완료");
+      updateWorkStatus(workRow, "done", productLabel);
+    }catch(e){
+      imgResult.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
+      updateWorkStatus(workRow, "fail", "네트워크 오류: " + String(e.message || e));
+    }finally{
+      imgGenBtn.disabled = false;
+      imgGenBtn.textContent = originalLabel;
+    }
+  });
+
+  // ---- persona (인물 페르소나) real image generation via /api/image ----
+  (function(){
+    var beforeBtn = $("p-before-gen");
+    var beforeCard = $("p-before-image-card");
+    var beforeResult = $("p-before-image-result");
+    var afterBtn = $("p-after-gen");
+    var afterCard = $("p-after-image-card");
+    var afterResult = $("p-after-image-result");
+    var afterRefInput = $("p-after-refimg");
+    var lastBeforeImageFile = null; // holds the generated BEFORE image so AFTER can reuse it as a reference
+
+    function ratioToSize(ratio){
+      if(ratio === "1:1") return "1024x1024";
+      if(ratio === "16:9") return "1536x1024";
+      return "1024x1536"; // 9:16, 4:5 and any other portrait-ish ratio
+    }
+
+    function base64ToFile(b64, filename){
+      var byteChars = atob(b64);
+      var byteNumbers = new Array(byteChars.length);
+      for(var i = 0; i < byteChars.length; i++){ byteNumbers[i] = byteChars.charCodeAt(i); }
+      var byteArray = new Uint8Array(byteNumbers);
+      return new File([byteArray], filename, { type: "image/png" });
+    }
+
+    async function generateImage(prompt, refFiles, resultEl, btnEl){
+      var originalLabel = btnEl.textContent;
+      btnEl.disabled = true;
+      btnEl.textContent = "생성 중... (최대 1분)";
+      resultEl.innerHTML = "<p class='hint'>이미지를 생성하고 있어요...</p>";
+
+      try{
+        var form = new FormData();
+        form.append("prompt", prompt);
+        form.append("size", ratioToSize($("p-ratio").value));
+        (refFiles || []).forEach(function(f){ form.append("image", f, f.name || "reference.png"); });
+
+        var res = await fetch("/api/image", { method: "POST", body: form });
+        var data = await res.json();
+
+        if(!res.ok || data.error){
+          resultEl.innerHTML = "<p class='hint' style='color:var(--danger);'>생성 실패: " + (data.message || data.error || res.statusText) + "</p>";
+          return null;
+        }
+
+        var src = "data:image/png;base64," + data.image_base64;
+        resultEl.innerHTML = "";
+        var img = document.createElement("img");
+        img.src = src;
+        resultEl.appendChild(img);
+        var dl = document.createElement("a");
+        dl.href = src;
+        dl.download = "persona_image.png";
+        dl.className = "btn";
+        dl.textContent = "이미지 다운로드";
+        resultEl.appendChild(dl);
+        showToast("이미지 생성 완료");
+        return data.image_base64;
+      }catch(e){
+        resultEl.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
+        return null;
+      }finally{
+        btnEl.disabled = false;
+        btnEl.textContent = originalLabel;
+      }
+    }
+
+    beforeBtn.addEventListener("click", async function(){
+      beforeCard.hidden = false;
+      var prompt = $("p-base").textContent;
+      var workRow = logWork("인물 BEFORE 이미지 생성", "", "running");
+      var b64 = await generateImage(prompt, [], beforeResult, beforeBtn);
+      lastBeforeImageFile = b64 ? base64ToFile(b64, "persona_before.png") : null;
+      updateWorkStatus(workRow, b64 ? "done" : "fail", b64 ? "" : "이미지 생성에 실패했어요");
+    });
+
+    afterBtn.addEventListener("click", async function(){
+      var prompt = $("p-followup").textContent;
+      var refFiles = [];
+      if(afterRefInput.files && afterRefInput.files.length > 0){
+        refFiles = Array.prototype.slice.call(afterRefInput.files);
+      }else if(lastBeforeImageFile){
+        refFiles = [lastBeforeImageFile];
+      }else{
+        showToast("먼저 ① BEFORE 이미지를 생성하거나, 참조 이미지를 업로드해주세요");
+        return;
+      }
+      afterCard.hidden = false;
+      var workRow = logWork("인물 AFTER 이미지 생성", "", "running");
+      var b64 = await generateImage(prompt, refFiles, afterResult, afterBtn);
+      updateWorkStatus(workRow, b64 ? "done" : "fail", b64 ? "" : "이미지 생성에 실패했어요");
+    });
+
+    // a new/changed persona invalidates the previously generated BEFORE image
+    ["p-new", "p-same"].forEach(function(id){
+      $(id).addEventListener("click", function(){
+        lastBeforeImageFile = null;
+        beforeCard.hidden = true;
+        afterCard.hidden = true;
+      });
+    });
+  })();
+
+  // ================= WRITER (server API call) =================
+  (function(){
+    var personaSel = $("w-persona");
+    var customWrap = $("w-custom-persona-wrap");
+    var customInput = $("w-custom-persona");
+    personaSel.addEventListener("change", function(){
+      customWrap.hidden = personaSel.value !== "custom";
+    });
+
+    var genBtn = $("w-gen"), copyBtn = $("w-copy");
+    var outEl = $("w-out"), charEl = $("w-charcount");
+
+    function setCharCount(text){
+      charEl.textContent = text ? ("(" + text.length + "자)") : "";
+    }
+
+    function getPersonaText(){
+      return personaSel.value === "custom" ? (customInput.value.trim() || "일반적인 30대 여성 소비자") : personaSel.value;
+    }
+
+    var IMAGE_COMP_TEXT = {
+      auto11: "사진이 들어가면 자연스러울 위치마다 줄을 바꿔서 \"[이미지 자리: 어떤 사진인지 한 줄 설명]\" 형태로 표시를 남기고, 전체 글에 11개 이상 배치해줘.",
+      mid: "사진이 들어가면 자연스러울 위치마다 줄을 바꿔서 \"[이미지 자리: 어떤 사진인지 한 줄 설명]\" 형태로 표시를 남기고, 전체 글에 5~7개 배치해줘.",
+      few: "사진이 들어가면 자연스러울 위치마다 줄을 바꿔서 \"[이미지 자리: 어떤 사진인지 한 줄 설명]\" 형태로 표시를 남기고, 전체 글에 2~3개만 배치해줘.",
+      none: "이미지 자리 표시 없이 텍스트만 작성해줘."
+    };
+
+    genBtn.addEventListener("click", async function(){
+      var topic = $("w-topic").value.trim();
+      if(!topic){ showToast("주제/제품을 입력해주세요"); $("w-topic").focus(); return; }
+
+      var persona = getPersonaText();
+      var tone = $("w-tone").value;
+      var useQuote = $("w-quote").value === "yes";
+      var purpose = $("w-purpose").value.trim() || "검색 의도 충족 및 SEO 최적화";
+      var imageComp = $("w-image-comp").value;
+      var imageRule = IMAGE_COMP_TEXT[imageComp] || IMAGE_COMP_TEXT.auto11;
+      var minLen = parseInt($("w-minlen").value, 10) || 1500;
+      var maxLen = parseInt($("w-maxlen").value, 10) || 1900;
+
+      var prompt = "너는 한국어 블로그 원고를 쓰는 실제 사람이라고 생각하고 아래 조건에 맞춰 원고 하나만 써줘. " +
+        "메타 설명, 제목 표시, 따옴표로 감싸기, '물론이죠' 같은 서두 멘트 없이 원고 본문만 출력해.\n\n" +
+        "[필자 페르소나] " + persona + "\n" +
+        "[말투] " + tone + "\n" +
+        "[글의 목적] " + purpose + "\n" +
+        "[주제/소재]\n" + topic + "\n" +
+        "[글자수] 공백 포함 " + minLen + "자 이상 " + maxLen + "자 이하로 정확히 맞춰서 작성 (너무 짧거나 넘기지 말 것)\n" +
+        "[인용구] " + (useQuote ? "본문 중간에 실제 사람이 말한 것처럼 자연스러운 인용구(전문가 코멘트나 주변 지인의 후기 등)를 1~2개 자연스럽게 녹여 넣을 것" : "인용구 없이 본인 경험담 위주로 작성") + "\n" +
+        "[이미지 구성] " + imageRule + "\n" +
+        "실제 사람이 직접 겪고 쓴 것처럼 자연스러운 문장 흐름, 문단 구분, 구어체 디테일을 살려서 작성해줘. AI가 쓴 티가 나는 뻔한 표현(예: '오늘은 ~에 대해 알아보겠습니다')은 피해줘.";
+
+      genBtn.disabled = true; copyBtn.disabled = true;
+      outEl.textContent = "생성 중...";
+      setCharCount("");
+      var topicLabel = topic.length > 24 ? topic.slice(0,24) + "…" : topic;
+      var workRow = logWork("새 글 준비", topicLabel, "running");
+
+      try{
+        var res = await fetch("/api/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt })
+        });
+        var data = await res.json();
+        if(!res.ok || data.error){
+          outEl.textContent = "생성 실패: " + (data.message || data.error || res.statusText);
+          showToast("생성 중 문제가 발생했어요");
+          updateWorkStatus(workRow, "fail", data.message || data.error || res.statusText);
+        } else {
+          outEl.textContent = data.text;
+          setCharCount(data.text);
+          showToast("원고 생성 완료");
+          addPostToManage(topic, data.text);
+          updateWorkStatus(workRow, "done", topicLabel);
+        }
+      }catch(e){
+        outEl.textContent = "네트워크 오류: " + String(e.message || e);
+        showToast("네트워크 오류가 발생했어요");
+        updateWorkStatus(workRow, "fail", "네트워크 오류: " + String(e.message || e));
+      }finally{
+        genBtn.disabled = false; copyBtn.disabled = false;
+      }
+    });
+
+    copyBtn.addEventListener("click", function(){ copyText(outEl.textContent); });
+  })();
+
+  // ================= RIAR WRITER (리아르 · 루미넥신 앰플 전용 작가) =================
+  (function(){
+    var projectSel = $("writer-project");
+    var riarBlock = $("writer-riar-block");
+    var generalBlock = $("writer-general-block");
+    if(!projectSel || !riarBlock || !generalBlock) return;
+
+    projectSel.addEventListener("change", function(){
+      var isRiar = projectSel.value === "riar";
+      riarBlock.hidden = !isRiar;
+      generalBlock.hidden = isRiar;
+    });
+
+    // ---- 고정 사실 DB / 트리거 템플릿 / 이모티콘 밀도 (마스터 프롬프트 그대로) ----
+    var RIAR_TARGET_FACTS =
+      "[루미넥신 앰플 — 고정 사실 DB (타겟 제품)]\n" +
+      "- 제품명(본문 표기): 반드시 \"루미넥신 앰플\"로만 지칭한다. 브랜드명(\"리아르\")은 어디에도 쓰지 않는다.\n" +
+      "- 차별화 근거: \"루미넥신\"은 등록상표이며 독점 키워드로 활용 가능하다.\n" +
+      "- 배합 성분: 트라넥삼산, 나이아신아마이드, 글루타치온, 멜라제로v2.\n" +
+      "- 미백 기능성을 단정적으로 주장할 때는 반드시 나이아신아마이드(식약처 고시원료)·트라넥삼산만 근거로 든다.\n" +
+      "- 글루타치온·멜라제로v2는 \"배합된 성분\" 수준으로만 언급하고, 이 두 성분 단독으로 효능을 단정하지 않는다 (멜라제로v2는 공용 원료명이라 차별화 포인트가 아니다).\n" +
+      "- 제품 포지셔닝: 기능성화장품이며, 의약품 대비 매일 부담 없이 사용 가능하다는 점은 강조할 수 있다.\n" +
+      "- 구매채널: 네이버 스마트스토어(lear_kr). 구매링크나 광고 문구는 본문에 직접 쓰지 않는다 — 시스템이 마지막에 자동으로 붙인다.\n" +
+      "- 위 DB에 없는 성분·수치·효능·인증 정보는 절대 지어내지 않는다.";
+
+    var RIAR_CONTROL_FACTS =
+      "[대조군 제품 — 고정 사실 DB]\n" +
+      "- 도미나크림: 일반의약품, 히드로퀴논 4% (사용 트리거: 자극발생형)\n" +
+      "- 멜라토닝크림: 일반의약품, 히드로퀴논 2% (사용 트리거: 정체기형)\n" +
+      "- 멜라논: 전문의약품, 히드로퀴논 5%+트레티노인+히드로코르티손 (사용 트리거: 비교탐색형 고강도 옵션)\n" +
+      "- 홈케어 기초템(발효팩 등): 화장품, 성분은 브랜드마다 상이 (사용 트리거: 병행시너지형)\n" +
+      "- 레이저 시술: 의료시술, 해당없음 (사용 트리거: 시술대안형)\n" +
+      "대조군 제품을 근거 없이 비방하지 않는다. 자극·정체기 등 부정적 경험은 \"제 경우엔\"이라는 개인 경험 프레이밍을 유지하고, 해당 제품 자체를 깎아내리는 단정적 문장은 쓰지 않는다.";
+
+    var RIAR_TRIGGER_SKELETONS = {
+      "자극발생형": "도입-문제인식 → 대조군(도미나크림) 선택 이유+가격정보 → 성분 설명(적응증 나열) → 사용법 → 변화 타임라인 → 자극 발생·중단 → 전환+루미넥신 앰플 효과+대구법 마무리",
+      "정체기형": "도입 → 대조군(멜라토닝크림) 배경+가격 → 효과 정체 경험 → 정체 원인 설명 → 루미넥신 앰플 병행/전환 → 변화 재개+대구법 마무리",
+      "병행시너지형": "도입 → 홈케어 기초템 사용+가격정보 → 한계 체감 → 루미넥신 앰플 발견 계기 → 병행 시작 → 시너지 체감+마무리",
+      "비교탐색형": "도입-추천계기 → 시중 제품 비교(가격·성분·분류 포함, 대조군 DB 중 3~4개 나열) → 루미넥신 앰플 선택 이유 → 사용 후 만족도+마무리",
+      "시술대안형": "도입-시술 고려 → 레이저 시술 비용·부담 정보 → 홈케어 우선 시도 결심 → 루미넥신 앰플 사용 → 변화 체감+마무리",
+      "정보형": "개념 설명형 — 후기 형식이 아닌 정보 전달 구성으로 작성하고, 본문 중후반부에 루미넥신 앰플을 자연스럽게 언급 (도입부 제외 6~7개 소제목)"
+    };
+
+    var RIAR_EMOJI_DENSITY = {
+      "담백형": "이모티콘(ㅠㅠ, ㅎㅎ, ㅋㅋ, ~~ 등)은 전체 글에서 1~2회만, 절정 지점(자극 발생·정체기 인지·전환 계기)에 집중 배치한다.",
+      "감정형": "이모티콘(ㅠㅠ, ㅎㅎ, ㅋㅋ, ~~ 등)은 전체 글에서 3~5회, 절정 지점(자극 발생·정체기 인지·전환 계기)에 집중 배치한다.",
+      "정보전달형": "이모티콘은 전체 글에서 0~1회만 사용하거나 아예 쓰지 않는다."
+    };
+
+    function buildRiarPrompt(v){
+      var triggerBlock;
+      if(v.trigger === "auto" || !RIAR_TRIGGER_SKELETONS[v.trigger]){
+        var lines = [];
+        Object.keys(RIAR_TRIGGER_SKELETONS).forEach(function(k){
+          lines.push("- " + k + ": " + RIAR_TRIGGER_SKELETONS[k]);
+        });
+        triggerBlock = "[매칭 트리거 템플릿 — 아래 중 키워드·검색의도에 가장 잘 맞는 것을 스스로 하나 골라, 그 뼈대에 맞춰 소제목을 구성한다]\n" + lines.join("\n");
+      } else {
+        triggerBlock = "[매칭 트리거 템플릿: " + v.trigger + "]\n" + RIAR_TRIGGER_SKELETONS[v.trigger];
+      }
+
+      var emojiRule = RIAR_EMOJI_DENSITY[v.emojiTone] || RIAR_EMOJI_DENSITY["담백형"];
+
+      return (
+        "너는 네이버 블로그에 올라가는 제품 체험 후기 원고를 쓰는 카피라이터다. 실제 소비자가 쓴 것처럼 자연스럽게, 아래 규칙을 절대 벗어나지 않는 선에서 작성한다.\n\n" +
+        "[절대 규칙]\n" +
+        "1. 사실은 아래 두 \"고정 사실 DB\"에 있는 내용만 사용한다. DB에 없는 성분·수치·효능·인증 정보를 지어내지 않는다.\n" +
+        "2. 브랜드명(\"리아르\")은 어디에도 쓰지 않는다. 제품은 반드시 \"루미넥신 앰플\"로만 지칭한다.\n" +
+        "3. 미백 기능성을 단정적으로 주장할 때는 나이아신아마이드·트라넥삼산만 근거로 한다. 글루타치온·멜라제로v2는 \"배합된 성분\" 수준으로만 언급한다.\n" +
+        "4. 과장 확언 표현 금지: \"무조건\", \"100% 없어진다\", \"완전히 사라졌다\" 등은 절대 쓰지 않는다. 마무리 섹션에는 \"기미가 단기간에 싹 없어진 건 아니지만\" 류의 절제된 표현을 반드시 넣는다.\n" +
+        "5. 대조군 제품을 근거 없이 비방하지 않는다. 자극·정체기 등 부정적 경험은 \"제 경우엔\"이라는 개인 경험 프레이밍을 유지한다.\n" +
+        "6. 본문 마지막에 광고 표시 문구나 구매링크를 절대 스스로 쓰지 마라. 그 부분은 시스템이 생성 후 자동으로 고정 삽입한다. 너는 [본문]까지만 작성한다.\n" +
+        "7. 키워드에 실제 타 브랜드명(예: 이지듀, 다이소, 올리브영, 코페르, 함익병 등 실존 인물)이 들어있어도, 그 브랜드·인물의 효능·성분·발언을 새로 지어내지 않는다. 검색 후킹용 소재로 제목·도입부에만 자연스럽게 녹이고, 구체적인 사실 서술은 항상 아래 두 고정 사실 DB(루미넥신 앰플/대조군)에 있는 내용만 사용한다.\n\n" +
+        RIAR_TARGET_FACTS + "\n\n" +
+        RIAR_CONTROL_FACTS + "\n\n" +
+        triggerBlock + "\n\n" +
+        "[줄바꿈 포맷 규칙 — 네이버 블로그 가독성 포맷, 필수]\n" +
+        "- 산문 문단으로 쓰지 말고, 한 문장(또는 이어지는 짧은 문장 2개)을 8~20자 단위 구절로 줄바꿈한다.\n" +
+        "- 구절 그룹(문장 1~2개 분량)이 끝나면 빈 줄을 하나 넣는다.\n" +
+        "- 소제목 앞뒤로는 빈 줄을 2줄씩 넣는다.\n" +
+        "- 마침표가 있어도 한 줄에 다 쓰지 않고 주어/서술어, 접속사 앞 등 자연스러운 끊어 읽기 지점에서 줄을 바꾼다.\n" +
+        "- 이 포맷은 산문형 초안을 다 쓴 뒤 마지막 단계에서 반드시 적용해서 출력한다.\n\n" +
+        "[구조 규칙]\n" +
+        "- 전체 분량: 공백 제외 " + v.minLen + "~" + v.maxLen + "자로 정확히 맞춘다.\n" +
+        "- 소제목: 도입부 제외 6~7개.\n" +
+        "- 성분 설명 섹션에는 반드시 적응증(기미/주근깨/색소침착 등)을 나열해 전문성을 만든다.\n" +
+        "- 마무리 섹션에는 \"대조군은 ~였다면, 루미넥신 앰플은 ~이다\" 형태의 대구법 문장을 반드시 넣는다.\n" +
+        "- " + emojiRule + "\n\n" +
+        "[입력 변수]\n" +
+        "키워드: " + v.keywords + "\n" +
+        "검색의도: " + (v.intent || "(미지정)") + "\n" +
+        "페르소나: " + v.persona + "\n" +
+        (v.note ? ("비고: " + v.note + "\n") : "") +
+        "\n[제목 스타일 — 아래 공식을 그대로 따른다. 절대 벗어나지 마라]\n" +
+        "제목 공식: [대조군 제품명] + [기간(개월/주/년) 또는 용량(ml) 또는 나이대 또는 구매처(약국/올리브영/다이소 등) 중 1~2개] + [후기 어미]\n" +
+        "후기 어미는 다음 중 하나만 쓴다: \"솔직후기\", \"내돈내산 후기\", \"내돈내산 실사용 후기\", \"실사용 후기\", \"체험 후기\", \"실제후기\".\n" +
+        "좋은 예시(이 형태를 그대로 따라라): \"도미나크림 2개월 사용, 약국 구매 솔직후기\" / \"이지듀 기미앰플 30ml 한달 실사용 내돈내산 후기\" / \"기미크림 40대 5주 실사용 후기\" / \"이지듀기미앰플 세 달 사용해본 50대 솔직후기\" / \"도미나크림 기미관리 8주사용 솔직후기\"\n" +
+        "나쁜 예시(절대 이렇게 쓰지 마라 — 실제로 아래처럼 잘못 나온 사례임):\n" +
+        "  X \"멜라토닝크림 8개월 사용 후 정체기, 전환 계기 솔직후기\" → 이유: \"정체기\", \"전환 계기\" 같은 스토리텔링/서사 단어가 제목에 들어감\n" +
+        "  X \"도미나크림 3개월 약국 구매 후 중단, 루미넥신 앰플로 바꾼 솔직후기\" → 이유: \"중단\", \"~로 바꾼\" 같은 서사 단어 + 타겟 제품명이 들어감\n" +
+        "  O 위 두 사례는 각각 \"멜라토닝크림 8개월 사용 솔직후기\", \"도미나크림 3개월 약국 구매 솔직후기\" 처럼 [제품명]+[정보]+[후기 어미]로만 끝내야 한다.\n" +
+        "**제목 절대 규칙 (이 중 하나라도 어기면 실패로 간주한다):**\n" +
+        "1. 제목에는 \"루미넥신\", \"앰플\", \"리아르\", \"LE:AR\", \"Spot Corrector\" 등 타겟 제품/브랜드를 가리키는 어떤 단어도 넣지 않는다. 제목은 오직 대조군(키워드) 제품명·정보로만 구성한다.\n" +
+        "2. 제목에는 \"정체기\", \"전환\", \"계기\", \"바꾼\", \"바꿔\", \"갈아탄\", \"중단\", \"끊고\" 등 스토리·서사·전환을 암시하는 단어를 절대 쓰지 않는다. 이런 서사(정체기를 겪다가 다른 제품으로 전환한 이야기)는 본문에서만 풀어내고, 제목은 위 공식대로 [대조군 제품명]+[정보]+[후기 어미]로 담백하게 끝낸다.\n" +
+        "3. 제목은 쉼표(,) 기준으로 최대 2구절까지만 허용하고, 그 이상 길게 늘어놓지 않는다.\n\n" +
+        "[출력 형식]\n" +
+        "[제목]\n" +
+        "위 제목 스타일을 따라 키워드가 자연스럽게 들어간 제목 한 줄\n\n" +
+        "[본문]\n" +
+        "위 소제목 구조를 따라 줄바꿈 포맷을 적용해서 작성한다.\n\n" +
+        "메타 설명, 따옴표로 감싸기, '물론이죠' 같은 서두 멘트, [마무리 고정 삽입] 섹션 없이 위 [제목]과 [본문]만 출력해."
+      );
+    }
+
+    var genBtn = $("riar-gen"), copyBtn = $("riar-copy");
+    var outEl = $("riar-out"), charEl = $("riar-charcount");
+    var checksEl = $("riar-checks");
+
+    var FORBIDDEN_BRAND = "리아르";
+    var BANNED_PHRASES = ["무조건", "100% 없어", "100%없어", "완전히 사라졌"];
+
+    function setCharCount(text){
+      charEl.textContent = text ? ("(" + text.length + "자)") : "";
+    }
+
+    var TITLE_FORBIDDEN_WORDS = ["루미넥신", "리아르", "LE:AR", "Spot Corrector"];
+    var TITLE_NARRATIVE_WORDS = ["정체기", "전환", "계기", "바꾼", "바꿔", "갈아탄", "중단", "끊고"];
+
+    function extractTitleLine(text){
+      var m = text.match(/\[제목\]\s*\n([\s\S]*?)(\n\s*\n|\[본문\])/);
+      if(m) return m[1].trim();
+      // [제목] 표시가 없으면 첫 줄을 제목으로 간주한다.
+      return String(text).split("\n")[0].trim();
+    }
+
+    function runComplianceChecks(text, skipDisclosure){
+      var issues = [];
+      if(text.indexOf(FORBIDDEN_BRAND) !== -1){
+        issues.push("브랜드명(\"" + FORBIDDEN_BRAND + "\")이 본문에 노출되었어요. 직접 확인 후 수정해주세요.");
+      }
+      var titleLine = extractTitleLine(text);
+      TITLE_FORBIDDEN_WORDS.forEach(function(w){
+        if(titleLine.indexOf(w) !== -1){
+          issues.push("제목에 타겟 제품/브랜드명(\"" + w + "\")이 들어갔어요. 제목에서 빼고 다시 생성해주세요.");
+        }
+      });
+      TITLE_NARRATIVE_WORDS.forEach(function(w){
+        if(titleLine.indexOf(w) !== -1){
+          issues.push("제목에 서사형 표현(\"" + w + "\")이 들어갔어요. [제품명]+[기간/용량/구매처]+[후기 어미] 형태로 다시 생성해주세요.");
+        }
+      });
+      BANNED_PHRASES.forEach(function(p){
+        if(text.indexOf(p) !== -1){
+          issues.push("과장 확언 표현(\"" + p + "\")이 감지되었어요. 절제된 표현으로 바꿔주세요.");
+        }
+      });
+      var bodyLen = text.replace(/\s/g, "").length;
+      if(bodyLen < 1500 || bodyLen > 2100){
+        issues.push("공백 제외 글자수가 " + bodyLen + "자예요. 목표 범위(1,600~1,900자)와 차이가 있으니 확인해주세요.");
+      }
+
+      checksEl.innerHTML = "";
+
+      if(skipDisclosure){
+        var skipNotice = document.createElement("div");
+        skipNotice.className = "card";
+        skipNotice.style.padding = "10px 14px";
+        skipNotice.style.borderColor = "#e0a30a";
+        skipNotice.innerHTML = "<span style='font-weight:700; color:#b8860b;'>광고 표시 생략 모드</span> <span class='hint'>이 원고에는 광고 표시 문구·구매링크가 빠져 있어요. 교육/내부용으로만 쓰고, 실제로 발행할 때는 체크를 해제하고 다시 생성해주세요.</span>";
+        checksEl.appendChild(skipNotice);
+      }
+
+      if(issues.length === 0){
+        var ok = document.createElement("div");
+        ok.className = "card";
+        ok.style.padding = "10px 14px";
+        ok.style.borderColor = "var(--accent)";
+        ok.innerHTML = "<span style='font-weight:700; color:var(--accent);'>자동 점검 통과</span> <span class='hint'>브랜드명 미노출 · 과장 표현 없음" + (skipDisclosure ? "" : " · 광고 문구 자동 삽입 완료") + ". 그래도 발행 전에 한 번 더 읽어보는 걸 권장해요.</span>";
+        checksEl.appendChild(ok);
+      } else {
+        issues.forEach(function(msg){
+          var warn = document.createElement("div");
+          warn.className = "card";
+          warn.style.padding = "10px 14px";
+          warn.style.borderColor = "#e0a30a";
+          warn.innerHTML = "<span style='font-weight:700; color:#b8860b;'>확인 필요</span> <span class='hint'>" + escapeHtml(msg) + "</span>";
+          checksEl.appendChild(warn);
+        });
+      }
+      return issues;
+    }
+
+    // 원고 1건을 실제로 생성하는 공통 로직. 키워드가 몇 줄이든 이 함수를 줄 수만큼 반복 호출한다.
+    // opts: { trigger, persona, emojiTone, minLen, maxLen, note, link, skipDisclosure }
+    async function generateOneRiarPost(keywords, intent, opts){
+      var v = {
+        keywords: keywords,
+        intent: intent || "",
+        trigger: opts.trigger,
+        persona: opts.persona,
+        emojiTone: opts.emojiTone,
+        minLen: opts.minLen,
+        maxLen: opts.maxLen,
+        note: opts.note
+      };
+      var prompt = buildRiarPrompt(v);
+      var firstKeywordLabel = keywords.split("\n")[0].trim();
+      var shortLabel = firstKeywordLabel.length > 24 ? firstKeywordLabel.slice(0,24) + "…" : firstKeywordLabel;
+      var workRow = logWork("리아르 원고 생성", shortLabel, "running");
+
+      try{
+        var res = await fetch("/api/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt })
+        });
+        var data = await res.json();
+        if(!res.ok || data.error){
+          var msg = data.message || data.error || res.statusText;
+          updateWorkStatus(workRow, "fail", msg);
+          return { ok: false, message: msg };
+        }
+
+        var raw = String(data.text || "").trim();
+        // 혹시 모델이 마무리 문구를 스스로 붙였으면 제거한다. 실제 발행용(광고 표시 생략을 켜지 않은 경우)에는
+        // 표시광고법 준수 문구를 모델 출력에 맡기지 않고 항상 이 코드가 직접 삽입한다.
+        raw = raw.replace(/\*?\[체험\s*후기\][\s\S]*$/, "").trim();
+        raw = raw.replace(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/, "").trim();
+
+        var full;
+        if(opts.skipDisclosure){
+          // 교육/내부 자료용 — 광고 표시 문구·구매링크를 붙이지 않는다.
+          full = raw;
+        } else {
+          // 구매링크는 선택 입력이라, 비어 있으면 광고 표시 문구만 붙이고 구매링크 문장은 생략한다.
+          var closingParts = [];
+          if(opts.link){
+            closingParts.push("구매는 " + opts.link + "에서 하실 수 있어요.");
+          }
+          closingParts.push("*[체험 후기] 본 게시글은 제품을 제공받아 작성되었습니다.*");
+          full = raw + "\n\n" + closingParts.join("\n\n");
+        }
+
+        addPostToManage("[리아르] " + (firstKeywordLabel || keywords), full);
+        updateWorkStatus(workRow, "done", shortLabel + (opts.skipDisclosure ? " (표시 생략)" : ""));
+        return { ok: true, text: full, skipDisclosure: !!opts.skipDisclosure };
+      }catch(e){
+        var netMsg = "네트워크 오류: " + String(e.message || e);
+        updateWorkStatus(workRow, "fail", netMsg);
+        return { ok: false, message: netMsg };
+      }
+    }
+
+    // 키워드 입력창은 한 줄 = 원고 한 건이다. 1줄만 쓰면 1건, 여러 줄이면 그 줄 수만큼 순서대로 전부 생성한다.
+    // 매번 위쪽 조건(트리거·페르소나·이모티콘 톤·글자수·구매링크·비고)을 다시 채울 필요 없이, 그 값들은
+    // 모든 줄에 공통으로 적용된다. 줄 형식은 "키워드 | 검색의도" (검색의도는 생략 가능, 생략하면 위의
+    // "기본 검색의도" 필드 값을 쓴다).
+    var batchStatusEl = $("riar-batch-status");
+    var batchProgressEl = $("riar-batch-progress");
+
+    function parseRiarBatch(text){
+      return text.split("\n")
+        .map(function(line){ return line.trim(); })
+        .filter(function(line){ return line.length > 0; })
+        .map(function(line){
+          var parts = line.split("|");
+          return {
+            keyword: (parts[0] || "").trim(),
+            intent: (parts[1] || "").trim()
+          };
+        })
+        .filter(function(row){ return row.keyword; });
+    }
+
+    genBtn.addEventListener("click", async function(){
+      var rows = parseRiarBatch($("riar-keywords").value);
+      var link = $("riar-link").value.trim();
+      var skipDisclosure = $("riar-no-disclosure").checked;
+      var defaultIntent = $("riar-intent").value.trim();
+      if(rows.length === 0){ showToast("키워드/주제를 한 줄 이상 입력해주세요"); $("riar-keywords").focus(); return; }
+
+      var opts = {
+        trigger: $("riar-trigger").value,
+        persona: $("riar-persona").value.trim() || "30대 초반, 미혼 사무직 / 담백 존댓말",
+        emojiTone: $("riar-emoji-tone").value,
+        minLen: parseInt($("riar-minlen").value, 10) || 1600,
+        maxLen: parseInt($("riar-maxlen").value, 10) || 1900,
+        note: $("riar-note").value.trim(),
+        link: link,
+        skipDisclosure: skipDisclosure
+      };
+
+      genBtn.disabled = true; copyBtn.disabled = true;
+      outEl.textContent = "생성 중...";
+      setCharCount("");
+      checksEl.innerHTML = "";
+      batchStatusEl.innerHTML = "";
+      batchProgressEl.textContent = "";
+
+      // 1건일 때는 상태 목록을 따로 보여주지 않고, 여러 건일 때만 줄마다 진행 상태를 보여준다.
+      var showStatusList = rows.length > 1;
+      var statusRows = showStatusList ? rows.map(function(row, i){
+        var el = document.createElement("div");
+        el.className = "worklog-row";
+        el.innerHTML = "<div class='row-head'><span class='row-title'>" + (i + 1) + ". " + escapeHtml(row.keyword) + "</span><span class='badge running'>대기</span></div>";
+        batchStatusEl.appendChild(el);
+        return el;
+      }) : null;
+
+      var doneCount = 0, failCount = 0;
+      for(var i = 0; i < rows.length; i++){
+        if(showStatusList){
+          var badge = statusRows[i].querySelector(".badge");
+          badge.className = "badge running";
+          badge.textContent = "생성 중";
+          batchProgressEl.textContent = "(" + (i + 1) + " / " + rows.length + " 진행 중)";
+        }
+
+        var result = await generateOneRiarPost(rows[i].keyword, rows[i].intent || defaultIntent, opts);
+
+        if(result.ok){
+          doneCount++;
+          outEl.textContent = result.text;
+          setCharCount(result.text);
+          runComplianceChecks(result.text, result.skipDisclosure);
+          if(showStatusList){
+            statusRows[i].querySelector(".badge").className = "badge done";
+            statusRows[i].querySelector(".badge").textContent = "완료";
+          }
+        } else {
+          failCount++;
+          if(!showStatusList){
+            outEl.textContent = "생성 실패: " + result.message;
+          } else {
+            statusRows[i].querySelector(".badge").className = "badge fail";
+            statusRows[i].querySelector(".badge").textContent = "실패";
+            var errP = document.createElement("p");
+            errP.className = "row-detail";
+            errP.textContent = result.message || "";
+            statusRows[i].appendChild(errP);
+          }
+        }
+
+        // 여러 건일 때는 API 과호출을 피하려고 다음 항목 전에 살짝 쉰다.
+        if(i < rows.length - 1){
+          await new Promise(function(resolve){ setTimeout(resolve, 1200); });
+        }
+      }
+
+      if(rows.length === 1){
+        showToast(doneCount ? ("원고 생성 완료" + (opts.skipDisclosure ? " (광고 표시 생략)" : "")) : "생성 중 문제가 발생했어요");
+      } else {
+        batchProgressEl.textContent = "완료 " + doneCount + "건 · 실패 " + failCount + "건";
+        showToast("일괄 생성 완료: " + doneCount + "건 성공");
+      }
+
+      genBtn.disabled = false; copyBtn.disabled = false;
+    });
+
+    copyBtn.addEventListener("click", function(){ copyText(outEl.textContent); });
+  })();
+
+  // ---------- 로그아웃 ----------
+  (function(){
+    var btn = $("logout-btn");
+    if(!btn) return;
+    btn.addEventListener("click", async function(){
+      try{ await fetch("/api/logout", { method: "POST" }); }catch(e){}
+      location.href = "/login";
+    });
+  })();
+
+  // ---------- API 연결 상태 확인 ----------
+  (function(){
+    var warnEl = $("api-warning");
+    var pillEl = $("status-pill");
+    var pillTextEl = $("status-pill-text");
+    fetch("/api/health").then(function(r){ return r.json(); }).then(function(data){
+      if(!data || !data.anthropic || !data.openai || !data.sitePassword){
+        var missing = [];
+        if(!data || !data.anthropic) missing.push("ANTHROPIC_API_KEY");
+        if(!data || !data.openai) missing.push("OPENAI_API_KEY");
+        if(!data || !data.sitePassword) missing.push("SITE_PASSWORD");
+        warnEl.textContent = "다음 API 키가 아직 설정되지 않았어요: " + missing.join(", ") + ". Cloudflare Pages 프로젝트 설정 → Settings → Environment variables에서 추가한 뒤 다시 배포해주세요.";
+        warnEl.hidden = false;
+        pillEl.className = "status-pill err";
+        pillTextEl.textContent = "API 연결 필요";
+      } else {
+        warnEl.hidden = true;
+        pillEl.className = "status-pill ok";
+        pillTextEl.textContent = "정상 연결됨";
+      }
+    }).catch(function(){
+      warnEl.textContent = "API 서버 상태를 확인할 수 없어요. Cloudflare Pages에 배포된 상태에서 접속하고 있는지 확인해주세요 (로컬 파일을 직접 열면 동작하지 않습니다).";
+      warnEl.hidden = false;
+      pillEl.className = "status-pill err";
+      pillTextEl.textContent = "연결 확인 실패";
+    });
+  })();
+
+  // ---------- init with a realistic example already loaded ----------
+  newPersona();
+  buildPersonaPrompts();
+  renderProductOptions();
+  buildProductPromptFinal();
+})();
+</script>
+</body>
+</html>
