@@ -212,6 +212,32 @@
   .badge.fail{background:rgba(179,38,30,.12); color:var(--danger); border-color:var(--danger);}
   .badge.running{background:rgba(37,99,235,.12); color:#2563eb; border-color:#2563eb;}
 
+  .keyword-bank{margin-top:8px;}
+  .keyword-bank .kb-head{display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;}
+  .keyword-bank .kb-head .hint{margin:0;}
+  .kb-textlink{font-size:12px; color:var(--accent); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; white-space:nowrap;}
+  .kb-textlink.muted{color:var(--text-muted);}
+  .kb-add-row{display:flex; gap:8px; align-items:flex-start; margin-bottom:10px;}
+  .kb-add-row textarea{flex:1;}
+  .kb-progress{font-size:12px; color:var(--text-muted); margin:0 0 6px;}
+  .kb-chip-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .kb-chip{
+    display:inline-flex; align-items:center; gap:6px; max-width:100%;
+    font-size:12px; padding:5px 10px; border-radius:999px;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    cursor:pointer; transition:background .15s ease, border-color .15s ease;
+  }
+  .kb-chip:hover{background:var(--surface); border-color:var(--accent);}
+  .kb-chip input[type="checkbox"]{width:auto; margin:0;}
+  .kb-chip.kb-done{opacity:.6;}
+  .kb-chip.kb-done .kb-chip-label{text-decoration:line-through;}
+  .kb-chip-dot{width:7px; height:7px; border-radius:999px; background:var(--text-muted); flex:none;}
+  .kb-chip.kb-done .kb-chip-dot{background:var(--good);}
+  .kb-chip-x{color:var(--text-muted); font-weight:700; line-height:1;}
+  .kb-chip-x:hover{color:var(--danger);}
+  .kb-empty{font-size:12px; color:var(--text-muted);}
+  .kb-actions{display:flex; align-items:center; gap:14px; margin-top:10px;}
+
   .worklog-row{padding:12px 0; border-bottom:1px solid var(--border);}
   .worklog-row:last-child{border-bottom:none;}
   .worklog-row .row-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
@@ -633,6 +659,24 @@
 기미 사라지는 크림 | 가격 비교
 색소침착 앰플 추천 | 부작용 걱정 해소
 정체기 극복 후기"></textarea>
+            <div class="keyword-bank" id="riar-keyword-bank">
+              <div class="kb-head">
+                <span class="hint">키워드 뱅크 <span style="font-weight:400;">(써야 할 키워드를 미리 등록해두고 체크해서 한 번에 입력창에 넣으세요 — 생성 완료된 건 자동으로 ✓표시돼요)</span></span>
+                <button type="button" class="kb-textlink" id="riar-keyword-bank-add-toggle">+ 후보 키워드 등록</button>
+              </div>
+              <div class="kb-add-row" id="riar-keyword-bank-add-row" hidden>
+                <textarea id="riar-keyword-bank-add" rows="3" placeholder="한 줄에 하나씩 붙여넣으세요. '키워드 | 검색의도' 형식 (검색의도 생략 가능)"></textarea>
+                <button type="button" class="btn ghost" id="riar-keyword-bank-add-btn">등록</button>
+              </div>
+              <p class="kb-progress" id="riar-keyword-bank-progress" hidden></p>
+              <div class="kb-chip-row" id="riar-keyword-bank-chips"></div>
+              <div class="kb-actions" id="riar-keyword-bank-actions" hidden>
+                <button type="button" class="btn primary" id="riar-keyword-bank-use-btn">체크한 키워드 입력창에 추가</button>
+              </div>
+              <div class="kb-actions" id="riar-keyword-bank-footer" hidden>
+                <button type="button" class="kb-textlink muted" id="riar-keyword-bank-clear-done">완료 항목 정리</button>
+              </div>
+            </div>
           </div>
           <div class="field">
             <label for="riar-intent">기본 검색의도 <span style="font-weight:400;">(선택 — 위에서 줄마다 검색의도를 안 적었을 때 공통 적용)</span></label>
@@ -1631,6 +1675,202 @@
       charEl.textContent = text ? ("(" + text.length + "자)") : "";
     }
 
+    // ================= 리아르 키워드 뱅크 =================
+    // 단순히 "최근 쓴 것"만 보여주던 것에서 한 걸음 더 나아가, 앞으로 써야 할 키워드 후보를
+    // 미리 등록해두고(할 일 목록) 체크해서 한 번에 입력창에 밀어넣는 방식으로 바꿨다.
+    // 원고가 생성되면 해당 키워드는 자동으로 "완료" 표시가 되어, 뭘 이미 다뤘고 뭐가 남았는지
+    // 한눈에 보인다. 등록을 안 해도 생성만 하면 자동으로 뱅크에 기록되니 기존 방식도 그대로 된다.
+    var RIAR_KEYWORD_BANK_KEY = "riar_keyword_bank_v1";
+    var RIAR_KEYWORD_BANK_MAX = 300;
+    var kbChipsEl = $("riar-keyword-bank-chips");
+    var kbActionsEl = $("riar-keyword-bank-actions");
+    var kbFooterEl = $("riar-keyword-bank-footer");
+    var kbUseBtn = $("riar-keyword-bank-use-btn");
+    var kbClearDoneBtn = $("riar-keyword-bank-clear-done");
+    var kbAddToggleBtn = $("riar-keyword-bank-add-toggle");
+    var kbAddRow = $("riar-keyword-bank-add-row");
+    var kbAddTextarea = $("riar-keyword-bank-add");
+    var kbAddBtn = $("riar-keyword-bank-add-btn");
+    var kbProgressEl = $("riar-keyword-bank-progress");
+
+    function loadRiarKeywordBank(){
+      try{
+        var raw = localStorage.getItem(RIAR_KEYWORD_BANK_KEY);
+        var arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      }catch(e){
+        return [];
+      }
+    }
+
+    function saveRiarKeywordBank(arr){
+      try{
+        localStorage.setItem(RIAR_KEYWORD_BANK_KEY, JSON.stringify(arr));
+      }catch(e){
+        // 저장 실패(프라이빗 모드 등)해도 화면 표시는 계속 동작하게 조용히 무시한다.
+      }
+    }
+
+    // 등록(할 일로 추가) — 이미 있는 키워드면 건드리지 않는다(완료 상태를 지우지 않기 위해).
+    function addKeywordsToBank(rows){
+      var arr = loadRiarKeywordBank();
+      var existing = {};
+      arr.forEach(function(item){ existing[item.keyword] = true; });
+      rows.forEach(function(row){
+        if(!row.keyword || existing[row.keyword]) return;
+        arr.unshift({ keyword: row.keyword, intent: row.intent || "", done: false, ts: Date.now() });
+        existing[row.keyword] = true;
+      });
+      if(arr.length > RIAR_KEYWORD_BANK_MAX) arr = arr.slice(0, RIAR_KEYWORD_BANK_MAX);
+      saveRiarKeywordBank(arr);
+      renderRiarKeywordBank();
+    }
+
+    // 원고 생성이 성공하면 호출 — 뱅크에 있으면 완료 표시, 없으면 완료 상태로 새로 추가(기존 "최근 사용" 동작 유지).
+    function markKeywordDoneInBank(keyword, intent){
+      keyword = String(keyword || "").trim();
+      if(!keyword) return;
+      var arr = loadRiarKeywordBank();
+      var found = arr.filter(function(item){ return item.keyword === keyword; })[0];
+      if(found){
+        found.done = true;
+        found.ts = Date.now();
+      } else {
+        arr.unshift({ keyword: keyword, intent: String(intent || "").trim(), done: true, ts: Date.now() });
+      }
+      if(arr.length > RIAR_KEYWORD_BANK_MAX) arr = arr.slice(0, RIAR_KEYWORD_BANK_MAX);
+      saveRiarKeywordBank(arr);
+      renderRiarKeywordBank();
+    }
+
+    function removeKeywordFromBank(keyword){
+      var arr = loadRiarKeywordBank().filter(function(item){ return item.keyword !== keyword; });
+      saveRiarKeywordBank(arr);
+      renderRiarKeywordBank();
+    }
+
+    function updateKeywordBankActionsVisibility(){
+      if(!kbChipsEl || !kbActionsEl) return;
+      var anyChecked = kbChipsEl.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+      kbActionsEl.hidden = !anyChecked;
+    }
+
+    function renderRiarKeywordBank(){
+      if(!kbChipsEl) return;
+      var arr = loadRiarKeywordBank();
+      // 할 일(todo)을 먼저, 완료된 건 뒤로 — 남은 작업이 항상 위에서 바로 보이게.
+      var todo = arr.filter(function(i){ return !i.done; });
+      var done = arr.filter(function(i){ return i.done; });
+      var ordered = todo.concat(done);
+
+      kbChipsEl.innerHTML = "";
+
+      if(arr.length === 0){
+        var empty = document.createElement("span");
+        empty.className = "kb-empty";
+        empty.textContent = "등록된 키워드가 없어요. 위 \"+ 후보 키워드 등록\"으로 미리 넣어두거나, 원고를 생성하면 자동으로 쌓여요.";
+        kbChipsEl.appendChild(empty);
+        if(kbProgressEl) kbProgressEl.hidden = true;
+        if(kbActionsEl) kbActionsEl.hidden = true;
+        if(kbFooterEl) kbFooterEl.hidden = true;
+        return;
+      }
+
+      if(kbProgressEl){
+        kbProgressEl.hidden = false;
+        kbProgressEl.textContent = "총 " + arr.length + "개 중 " + done.length + "개 생성 완료 · " + todo.length + "개 남음";
+      }
+      if(kbFooterEl) kbFooterEl.hidden = done.length === 0;
+
+      ordered.forEach(function(item){
+        var chip = document.createElement("label");
+        chip.className = "kb-chip" + (item.done ? " kb-done" : "");
+        chip.title = item.intent ? ("검색의도: " + item.intent) : "";
+
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.addEventListener("change", updateKeywordBankActionsVisibility);
+        chip.appendChild(cb);
+
+        var dot = document.createElement("span");
+        dot.className = "kb-chip-dot";
+        chip.appendChild(dot);
+
+        var label = document.createElement("span");
+        label.className = "kb-chip-label";
+        label.textContent = item.keyword.length > 26 ? item.keyword.slice(0, 26) + "…" : item.keyword;
+        chip.appendChild(label);
+
+        var xBtn = document.createElement("span");
+        xBtn.className = "kb-chip-x";
+        xBtn.textContent = "✕";
+        xBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          removeKeywordFromBank(item.keyword);
+        });
+        chip.appendChild(xBtn);
+
+        chip._kbItem = item;
+        kbChipsEl.appendChild(chip);
+      });
+
+      updateKeywordBankActionsVisibility();
+    }
+
+    if(kbAddToggleBtn && kbAddRow){
+      kbAddToggleBtn.addEventListener("click", function(){
+        kbAddRow.hidden = !kbAddRow.hidden;
+        if(!kbAddRow.hidden) kbAddTextarea.focus();
+      });
+    }
+
+    if(kbAddBtn){
+      kbAddBtn.addEventListener("click", function(){
+        var rows = parseRiarBatch(kbAddTextarea.value);
+        if(rows.length === 0){ showToast("등록할 키워드를 한 줄 이상 입력해주세요"); return; }
+        addKeywordsToBank(rows);
+        kbAddTextarea.value = "";
+        kbAddRow.hidden = true;
+        showToast(rows.length + "개 키워드를 뱅크에 등록했어요");
+      });
+    }
+
+    if(kbUseBtn){
+      kbUseBtn.addEventListener("click", function(){
+        var checkedChips = Array.prototype.filter.call(
+          kbChipsEl.querySelectorAll(".kb-chip"),
+          function(chip){ return chip.querySelector('input[type="checkbox"]').checked; }
+        );
+        if(checkedChips.length === 0) return;
+        var kwEl = $("riar-keywords");
+        var lines = kwEl.value.split("\n").map(function(l){ return l.trim(); }).filter(function(l){ return l !== ""; });
+        checkedChips.forEach(function(chip){
+          var item = chip._kbItem;
+          var line = item.intent ? (item.keyword + " | " + item.intent) : item.keyword;
+          if(lines.indexOf(line) === -1 && lines.indexOf(item.keyword) === -1){
+            lines.push(line);
+          }
+          chip.querySelector('input[type="checkbox"]').checked = false;
+        });
+        kwEl.value = lines.join("\n");
+        kwEl.focus();
+        updateKeywordBankActionsVisibility();
+        showToast(checkedChips.length + "개 키워드를 입력창에 추가했어요");
+      });
+    }
+
+    if(kbClearDoneBtn){
+      kbClearDoneBtn.addEventListener("click", function(){
+        var arr = loadRiarKeywordBank().filter(function(item){ return !item.done; });
+        saveRiarKeywordBank(arr);
+        renderRiarKeywordBank();
+        showToast("완료된 키워드를 목록에서 정리했어요");
+      });
+    }
+
+    renderRiarKeywordBank();
+
     var TITLE_FORBIDDEN_WORDS = ["루미넥신", "리아르", "LE:AR", "Spot Corrector"];
     var TITLE_NARRATIVE_WORDS = ["정체기", "전환", "계기", "바꾼", "바꿔", "갈아탄", "중단", "끊고"];
 
@@ -1750,6 +1990,7 @@
         }
 
         addPostToManage("[리아르] " + (firstKeywordLabel || keywords), full);
+        markKeywordDoneInBank(firstKeywordLabel || keywords, intent);
         updateWorkStatus(workRow, "done", shortLabel + (opts.skipDisclosure ? " (표시 생략)" : ""));
         return { ok: true, text: full, skipDisclosure: !!opts.skipDisclosure };
       }catch(e){
