@@ -1,7 +1,10 @@
 // Runs before every request (pages and /api/*).
 // Gates the whole site behind a single shared password (env.SITE_PASSWORD),
 // so only people who know it can open the site.
-const PUBLIC_PATHS = new Set(["/login.html", "/api/login", "/api/logout", "/api/health"]);
+// Cloudflare Pages serves login.html at the clean URL "/login" and redirects
+// "/login.html" requests to "/login" — both must stay public, or that
+// redirect loops forever against the auth check below.
+const PUBLIC_PATHS = new Set(["/login.html", "/login", "/api/login", "/api/logout", "/api/health"]);
 
 export async function onRequest(context) {
   const { request, env, next } = context;
@@ -29,7 +32,7 @@ export async function onRequest(context) {
   const accept = request.headers.get("Accept") || "";
   if (accept.includes("text/html")) {
     const next_ = encodeURIComponent(url.pathname + url.search);
-    return Response.redirect(`${url.origin}/login.html?next=${next_}`, 302);
+    return Response.redirect(`${url.origin}/login?next=${next_}`, 302);
   }
 
   return new Response(JSON.stringify({ error: "unauthorized", message: "로그인이 필요합니다." }), {
