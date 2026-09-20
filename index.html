@@ -316,6 +316,13 @@
       </div>
       <div class="summary-line" id="p-summary-a"></div>
       <pre class="out" id="p-base"></pre>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="p-before-gen">① BEFORE 이미지 생성</button>
+      </div>
+      <div class="card" id="p-before-image-card" hidden style="margin-top:14px; box-shadow:none; border:1px dashed var(--border, #ddd);">
+        <div class="out-head"><p class="out-title">생성된 BEFORE 이미지</p></div>
+        <div class="img-result" id="p-before-image-result"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -327,6 +334,17 @@
         <button class="copy-btn" data-copy="p-followup">복사</button>
       </div>
       <pre class="out" id="p-followup"></pre>
+      <div class="field" style="margin-top:14px;">
+        <label for="p-after-refimg">참조 이미지 <span style="font-weight:400;">(선택 — 비워두면 방금 생성한 BEFORE 이미지를 자동 사용)</span></label>
+        <input type="file" id="p-after-refimg" accept="image/png,image/jpeg,image/webp">
+      </div>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="p-after-gen">② AFTER 이미지 생성</button>
+      </div>
+      <div class="card" id="p-after-image-card" hidden style="margin-top:14px; box-shadow:none; border:1px dashed var(--border, #ddd);">
+        <div class="out-head"><p class="out-title">생성된 AFTER 이미지</p></div>
+        <div class="img-result" id="p-after-image-result"></div>
+      </div>
     </div>
   </section>
 
@@ -953,6 +971,105 @@
     }
   });
 
+  // ---- persona (인물 페르소나) real image generation via /api/image ----
+  (function(){
+    var beforeBtn = $("p-before-gen");
+    var beforeCard = $("p-before-image-card");
+    var beforeResult = $("p-before-image-result");
+    var afterBtn = $("p-after-gen");
+    var afterCard = $("p-after-image-card");
+    var afterResult = $("p-after-image-result");
+    var afterRefInput = $("p-after-refimg");
+    var lastBeforeImageFile = null; // holds the generated BEFORE image so AFTER can reuse it as a reference
+
+    function ratioToSize(ratio){
+      if(ratio === "1:1") return "1024x1024";
+      if(ratio === "16:9") return "1536x1024";
+      return "1024x1536"; // 9:16, 4:5 and any other portrait-ish ratio
+    }
+
+    function base64ToFile(b64, filename){
+      var byteChars = atob(b64);
+      var byteNumbers = new Array(byteChars.length);
+      for(var i = 0; i < byteChars.length; i++){ byteNumbers[i] = byteChars.charCodeAt(i); }
+      var byteArray = new Uint8Array(byteNumbers);
+      return new File([byteArray], filename, { type: "image/png" });
+    }
+
+    async function generateImage(prompt, refFiles, resultEl, btnEl){
+      var originalLabel = btnEl.textContent;
+      btnEl.disabled = true;
+      btnEl.textContent = "생성 중... (최대 1분)";
+      resultEl.innerHTML = "<p class='hint'>이미지를 생성하고 있어요...</p>";
+
+      try{
+        var form = new FormData();
+        form.append("prompt", prompt);
+        form.append("size", ratioToSize($("p-ratio").value));
+        (refFiles || []).forEach(function(f){ form.append("image", f, f.name || "reference.png"); });
+
+        var res = await fetch("/api/image", { method: "POST", body: form });
+        var data = await res.json();
+
+        if(!res.ok || data.error){
+          resultEl.innerHTML = "<p class='hint' style='color:var(--danger);'>생성 실패: " + (data.message || data.error || res.statusText) + "</p>";
+          return null;
+        }
+
+        var src = "data:image/png;base64," + data.image_base64;
+        resultEl.innerHTML = "";
+        var img = document.createElement("img");
+        img.src = src;
+        resultEl.appendChild(img);
+        var dl = document.createElement("a");
+        dl.href = src;
+        dl.download = "persona_image.png";
+        dl.className = "btn";
+        dl.textContent = "이미지 다운로드";
+        resultEl.appendChild(dl);
+        showToast("이미지 생성 완료");
+        return data.image_base64;
+      }catch(e){
+        resultEl.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
+        return null;
+      }finally{
+        btnEl.disabled = false;
+        btnEl.textContent = originalLabel;
+      }
+    }
+
+    beforeBtn.addEventListener("click", async function(){
+      beforeCard.hidden = false;
+      var prompt = $("p-base").textContent;
+      var b64 = await generateImage(prompt, [], beforeResult, beforeBtn);
+      lastBeforeImageFile = b64 ? base64ToFile(b64, "persona_before.png") : null;
+    });
+
+    afterBtn.addEventListener("click", async function(){
+      var prompt = $("p-followup").textContent;
+      var refFiles = [];
+      if(afterRefInput.files && afterRefInput.files.length > 0){
+        refFiles = Array.prototype.slice.call(afterRefInput.files);
+      }else if(lastBeforeImageFile){
+        refFiles = [lastBeforeImageFile];
+      }else{
+        showToast("먼저 ① BEFORE 이미지를 생성하거나, 참조 이미지를 업로드해주세요");
+        return;
+      }
+      afterCard.hidden = false;
+      await generateImage(prompt, refFiles, afterResult, afterBtn);
+    });
+
+    // a new/changed persona invalidates the previously generated BEFORE image
+    ["p-new", "p-same"].forEach(function(id){
+      $(id).addEventListener("click", function(){
+        lastBeforeImageFile = null;
+        beforeCard.hidden = true;
+        afterCard.hidden = true;
+      });
+    });
+  })();
+
   // ================= WRITER (server API call) =================
   (function(){
     var personaSel = $("w-persona");
@@ -1028,7 +1145,7 @@
     if(!btn) return;
     btn.addEventListener("click", async function(){
       try{ await fetch("/api/logout", { method: "POST" }); }catch(e){}
-      location.href = "/login.html";
+      location.href = "/login";
     });
   })();
 
