@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>비주얼 프롬프트 스튜디오 — 로그인</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#eef0ee; --surface:#ffffff; --border:#d2d7d0;
+    --text:#181b18; --text-muted:#5f665f;
+    --accent:#a5672c; --accent-ink:#ffffff;
+    --danger:#a5402a;
+    --shadow: 0 1px 2px rgba(20,20,16,.06), 0 8px 24px -12px rgba(20,20,16,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14161a; --surface:#1c1f24; --border:#343a44;
+      --text:#edeff2; --text-muted:#8d94a0;
+      --accent:#d9a15c; --accent-ink:#1a140b;
+      --danger:#e08769;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14161a; --surface:#1c1f24; --border:#343a44;
+    --text:#edeff2; --text-muted:#8d94a0;
+    --accent:#d9a15c; --accent-ink:#1a140b;
+    --danger:#e08769;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:var(--text);
+    font-family:"Noto Sans KR",system-ui,sans-serif;
+    padding:16px;
+  }
+  .card{
+    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:32px 28px; box-shadow:var(--shadow);
+  }
+  .eyebrow{font-size:12px; letter-spacing:.06em; color:var(--text-muted); margin:0 0 6px;}
+  h1{font-size:19px; margin:0 0 22px; font-weight:700;}
+  label{display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;}
+  input[type=password]{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border);
+    background:transparent; color:var(--text); font-size:15px; margin-bottom:14px;
+  }
+  input[type=password]:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  button{
+    width:100%; padding:12px 14px; border-radius:10px; border:none;
+    background:var(--accent); color:var(--accent-ink); font-size:15px; font-weight:600;
+    cursor:pointer;
+  }
+  button:disabled{opacity:.6; cursor:default;}
+  .err{color:var(--danger); font-size:13px; margin:0 0 14px; min-height:16px;}
+</style>
+</head>
+<body>
+  <form class="card" id="login-form">
+    <p class="eyebrow">DID CORPORATION</p>
+    <h1>비주얼 프롬프트 스튜디오</h1>
+    <label for="pw">비밀번호</label>
+    <input type="password" id="pw" name="pw" autocomplete="current-password" required autofocus>
+    <p class="err" id="err"></p>
+    <button type="submit" id="submit-btn">입장하기</button>
+  </form>
+
+<script>
+  var form = document.getElementById("login-form");
+  var pwInput = document.getElementById("pw");
+  var errEl = document.getElementById("err");
+  var btn = document.getElementById("submit-btn");
+
+  var params = new URLSearchParams(location.search);
+  var next = params.get("next") || "/";
+
+  form.addEventListener("submit", async function(e){
+    e.preventDefault();
+    errEl.textContent = "";
+    btn.disabled = true;
+    btn.textContent = "확인 중...";
+    try{
+      var res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pwInput.value })
+      });
+      var data = await res.json();
+      if(res.ok && data.ok){
+        location.href = next;
+      } else {
+        errEl.textContent = (data && data.message) || "비밀번호가 올바르지 않습니다.";
+      }
+    }catch(err){
+      errEl.textContent = "네트워크 오류가 발생했습니다.";
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "입장하기";
+    }
+  });
+</script>
+</body>
+</html>
