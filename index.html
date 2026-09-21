@@ -2068,15 +2068,28 @@
           return { ok: false, message: msg };
         }
 
-        var raw = String(data.text || "").trim();
+        function bareLen(t){ return String(t || "").replace(/\s/g, "").length; }
+
         // 혹시 모델이 마무리 문구를 스스로 붙였으면 제거한다. 실제 발행용(광고 표시 생략을 켜지 않은 경우)에는
         // 표시광고법 준수 문구를 모델 출력에 맡기지 않고 항상 이 코드가 직접 삽입한다.
-        raw = raw.replace(/\*?\[체험\s*후기\][\s\S]*$/, "").trim();
-        raw = raw.replace(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/, "").trim();
+        // 단, 본문 중간에 우연히 비슷한 단어가 섞여 있을 때 그 뒤 전체(수백~수천 자)가 통째로 잘려나가는
+        // 걸 막기 위해, 그 문구가 실제로 "글 끝부분"(마지막 250자 이내)에 있을 때만 잘라낸다.
+        function stripSelfClosing(text){
+          var t = text;
+          var m1 = t.match(/\*?\[체험\s*후기\][\s\S]*$/);
+          if(m1 && bareLen(m1[0]) <= 250){ t = t.slice(0, m1.index).trim(); }
+          var m2 = t.match(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/);
+          if(m2 && bareLen(m2[0]) <= 250){ t = t.slice(0, m2.index).trim(); }
+          return t;
+        }
+
+        var rawUnscrubbed = String(data.text || "").trim();
+        var raw = stripSelfClosing(rawUnscrubbed);
+        var scrubRemoved = bareLen(rawUnscrubbed) - bareLen(raw);
 
         // 분량이 목표 최소치에 못 미치면, 같은 제목·사실관계를 유지한 채 더 길게 다시 쓰라고 최대 2번 재요청한다.
         // (프롬프트 지시만으로는 모델이 짧게 끝내버리는 경우가 실제로 자주 있어서 추가한 안전장치)
-        function bareLen(t){ return String(t || "").replace(/\s/g, "").length; }
+        var initialDraftLen = bareLen(raw);
         var minLenNum = parseInt(v.minLen, 10) || 1600;
         var maxLenNum = parseInt(v.maxLen, 10) || 1900;
         var extendAttempts = 0;
@@ -2094,9 +2107,7 @@
             });
             var data2 = await res2.json();
             if(!res2.ok || data2.error || !data2.text){ break; }
-            var raw2 = String(data2.text || "").trim();
-            raw2 = raw2.replace(/\*?\[체험\s*후기\][\s\S]*$/, "").trim();
-            raw2 = raw2.replace(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/, "").trim();
+            var raw2 = stripSelfClosing(String(data2.text || "").trim());
             if(bareLen(raw2) > bareLen(raw)){ raw = raw2; }
           }catch(e){
             break;
@@ -2122,7 +2133,10 @@
         var doneDetail = shortLabel + (opts.skipDisclosure ? " (표시 생략)" : "") + (v.related ? (" · 연관: " + v.related) : "") +
           (extendAttempts > 0 ? (" · 분량 보정 " + extendAttempts + "회") : "");
         updateWorkStatus(workRow, "done", doneDetail);
-        return { ok: true, text: full, skipDisclosure: !!opts.skipDisclosure, extendAttempts: extendAttempts };
+        return {
+          ok: true, text: full, skipDisclosure: !!opts.skipDisclosure, extendAttempts: extendAttempts,
+          scrubRemoved: scrubRemoved, initialDraftLen: initialDraftLen, finalDraftLen: bareLen(raw)
+        };
       }catch(e){
         var netMsg = "네트워크 오류: " + String(e.message || e);
         updateWorkStatus(workRow, "fail", netMsg);
@@ -2232,6 +2246,25 @@
           outEl.textContent = result.text;
           setCharCount(result.text);
           runComplianceChecks(result.text, result.skipDisclosure);
+
+          // 재시도가 있었든 없었든 항상 진단 정보를 보여준다 — 개발자도구 없이도 재시도가 실제로
+          // 발동됐는지, 자동 정리(모델의 자기 마무리 문구 제거) 과정에서 글자가 많이 잘렸는지 바로 보이게.
+          var diag = document.createElement("div");
+          diag.className = "card";
+          diag.style.padding = "10px 14px";
+          diag.style.borderColor = result.extendAttempts > 0 ? "var(--accent)" : "var(--border)";
+          var diagMsg = "1차 초안(자동 정리 후) " + result.initialDraftLen + "자";
+          if(result.extendAttempts > 0){
+            diagMsg += " → 분량 부족으로 " + result.extendAttempts + "회 재요청 → 최종 " + result.finalDraftLen + "자";
+          } else {
+            diagMsg += " (1차부터 목표 충족 — 재요청 없음)";
+          }
+          if(result.scrubRemoved > 100){
+            diagMsg += " · ⚠️ 모델이 본문 중간에 마무리 문구 비슷한 걸 써서 자동 정리 과정에서 " + result.scrubRemoved + "자가 잘려나갔어요. 원인일 수 있으니 원본을 확인해보세요.";
+          }
+          diag.innerHTML = "<span style='font-weight:700; color:" + (result.extendAttempts > 0 ? "var(--accent)" : "var(--text-muted)") + ";'>생성 진단</span> <span class='hint'>" + escapeHtml(diagMsg) + "</span>";
+          checksEl.appendChild(diag);
+
           if(result.extendAttempts > 0){
             var extNote = document.createElement("div");
             extNote.className = "card";
