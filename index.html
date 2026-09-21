@@ -611,6 +611,7 @@
         <label for="pr-handheld" style="margin:0;">에디토리얼 핸드헬드 무드 적용 <span style="font-weight:400; color:var(--text-muted);">— 살짝 기울어진 핸드헬드 앵글 + 배경 피사체 얕은 심도 블러</span></label>
       </div>
 
+
       <div class="field" style="margin-top:14px;">
         <label for="pr-extra">추가 디테일 (선택)</label>
         <textarea id="pr-extra" placeholder="예: 로고는 골드 컬러로 강조, 옆에 유칼립투스 잎 소품 추가"></textarea>
@@ -1462,6 +1463,7 @@
     var size = $("pr-ratio").value;
     var files = $("pr-refimg").files;
     var productLabel = ($("pr-product") && $("pr-product").selectedOptions[0]) ? $("pr-product").selectedOptions[0].textContent : "";
+    var isCompetitorGen = $("pr-brand").value === "competitor";
 
     imgGenBtn.disabled = true;
     var originalLabel = imgGenBtn.textContent;
@@ -1496,8 +1498,11 @@
       dl.className = "btn";
       dl.textContent = "이미지 다운로드";
       imgResult.appendChild(dl);
-      if(window.addToImagePool){ window.addToImagePool(productLabel || "제품 이미지", "product", src, true, true); }
-      showToast("이미지 생성 완료 · 이미지 매니저에 자동으로 담겼어요");
+      if(window.addToImagePool){
+        var poolLabel = productLabel || (isCompetitorGen ? "대조군(타사) 제품" : "제품 이미지");
+        window.addToImagePool(poolLabel, isCompetitorGen ? "competitor" : "product", src, true, true);
+      }
+      showToast("이미지 생성 완료 · 이미지 매니저에 자동으로 담겼어요" + (isCompetitorGen ? " (대조군으로 분류)" : ""));
       updateWorkStatus(workRow, "done", productLabel);
     }catch(e){
       imgResult.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
@@ -1630,7 +1635,8 @@
   // ================= IMAGE MANAGER (보관함 · 비포/애프터 합성 · 발행 순서) =================
   (function(){
     var CATEGORY_LABEL = {
-      product: "제품",
+      product: "제품(자사)",
+      competitor: "대조군(타사) 제품",
       before: "인물 BEFORE",
       after: "인물 AFTER",
       composite: "비포/애프터 합성",
