@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>비주얼 프롬프트 스튜디오</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root{
     --bg:#f6f8f6; --surface:#ffffff; --surface-2:#f0f3f0; --border:#e3e8e3;
@@ -253,6 +254,23 @@
   }
   .img-result img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
 
+  .im-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; margin-top:10px;}
+  .im-card{border:1px solid var(--border); border-radius:10px; padding:8px; background:var(--surface-2); display:flex; flex-direction:column; gap:6px;}
+  .im-card img{width:100%; height:110px; object-fit:cover; border-radius:6px; border:1px solid var(--border); background:var(--surface);}
+  .im-card select{width:100%; font-size:12px; padding:4px 6px;}
+  .im-card .im-remove{align-self:flex-end; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:0;}
+  .im-card .im-remove:hover{color:var(--danger);}
+
+  .im-order-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; margin-top:8px; background:var(--surface);}
+  .im-order-row .im-order-num{width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex:0 0 auto;}
+  .im-order-row img{width:46px; height:46px; object-fit:cover; border-radius:6px; border:1px solid var(--border); flex:0 0 auto;}
+  .im-order-row .im-order-info{flex:1 1 auto; min-width:0;}
+  .im-order-row .im-order-info p{margin:0; font-size:13px;}
+  .im-order-row .im-order-info .im-order-cat{color:var(--text-muted); font-size:12px;}
+  .im-order-row .im-order-btns{display:flex; gap:4px; flex:0 0 auto;}
+  .im-order-row .im-order-btns button{width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--surface); cursor:pointer;}
+  .im-order-row.im-excluded{opacity:.45;}
+
   @media (max-width:480px){
     .grid{grid-template-columns:1fr 1fr;}
     .card{padding:16px;}
@@ -280,6 +298,10 @@
       <p class="nav-group-label">이미지 도구</p>
       <button class="tab" id="tab-persona" data-tab="persona" data-label="인물 페르소나" role="tab" aria-selected="false"><span class="nav-icon">👤</span>인물 페르소나</button>
       <button class="tab" id="tab-product" data-tab="product" data-label="제품 실사 이미지" role="tab" aria-selected="false"><span class="nav-icon">🛍️</span>제품 실사 이미지</button>
+      <button class="tab" id="tab-imagemanager" data-tab="imagemanager" data-label="이미지 매니저" role="tab" aria-selected="false"><span class="nav-icon">🖼️</span>이미지 매니저</button>
+
+      <p class="nav-group-label">발행 자동화</p>
+      <button class="tab" id="tab-accounts" data-tab="accounts" data-label="계정 관리" role="tab" aria-selected="false"><span class="nav-icon">👥</span>계정 관리</button>
     </nav>
 
     <div class="sidebar-foot">
@@ -624,6 +646,129 @@
         <p class="out-title">생성된 이미지</p>
       </div>
       <div class="img-result" id="pr-image-result"></div>
+    </div>
+  </section>
+
+  <!-- IMAGE MANAGER PANEL -->
+  <section id="panel-imagemanager" class="panel">
+    <div class="tip">
+      <b>자동으로 되는 부분:</b> 인물 페르소나 탭에서 BEFORE·AFTER 이미지를 순서대로 생성하면, 두 이미지를 자동으로 합성하고 발행 순서에도 자동으로 넣어줘요(클릭 필요 없음). 제품 실사 이미지도 생성하면 바로 보관함에 담겨요. 원본 비포/애프터는 참고용으로 보관함에는 남지만 발행 순서에서는 기본적으로 빠집니다.<br>
+      <b>필요할 때만 손으로:</b> 순서를 바꾸거나 빼고 싶은 이미지가 있으면 아래 "발행 순서" 목록에서 체크·화살표로 조정하고, 완성되면 "번호 매겨 ZIP 다운로드"만 누르면 돼요. 실제 네이버 발행 자동화(크롤링)는 이 ZIP/매니페스트를 읽어서 그 순서대로 첨부하는 별도 스크립트에서 처리합니다.
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">이미지 보관함 <span id="im-pool-count">— 0장</span></p>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label for="im-upload">이미지 직접 추가 <span style="font-weight:400;">(자동 생성 흐름을 안 쓰고 파일을 바로 올릴 때만)</span></label>
+        <input type="file" id="im-upload" accept="image/png,image/jpeg,image/webp" multiple>
+      </div>
+      <div id="im-pool-empty" class="hint">아직 담긴 이미지가 없어요. 인물 페르소나·제품 실사 탭에서 이미지를 생성하면 자동으로 여기 쌓여요.</div>
+      <div id="im-pool-grid" class="im-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">비포/애프터 수동 합성 <span style="font-weight:400; font-size:12px;">— 직접 업로드한 이미지용 (자동 생성 흐름에서는 필요 없음)</span></p>
+      </div>
+      <p class="hint" style="margin-top:0;">인물 페르소나 탭에서 만든 BEFORE/AFTER는 자동으로 합성돼요. 이건 직접 업로드한 비포/애프터 이미지를 합칠 때만 쓰면 됩니다.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="im-before-select">비포(BEFORE) 이미지</label>
+          <select id="im-before-select"></select>
+        </div>
+        <div class="field">
+          <label for="im-after-select">애프터(AFTER) 이미지</label>
+          <select id="im-after-select"></select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="im-composite-btn">합성하기</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">발행 순서 · 번호 매기기</p>
+      </div>
+      <p class="hint" style="margin-top:0;">이 글에 실제로 쓸 이미지만 체크하고, 화살표로 순서를 정하면 번호가 자동으로 매겨져요. 이 번호 순서대로 크롤링(자동 발행) 쪽에서 이미지를 첨부하면 됩니다.</p>
+      <div id="im-order-empty" class="hint">보관함에서 이미지를 담으면 여기에 순서 목록이 생겨요.</div>
+      <div id="im-order-list"></div>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="im-export-btn">번호 매겨 ZIP + 매니페스트 다운로드</button>
+        <button class="btn ghost" id="im-clear-btn">보관함 비우기</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">이 글 내보내기 <span style="font-weight:400; font-size:12px;">— naver-publisher 스크립트용</span></p>
+      </div>
+      <p class="hint" style="margin-top:0;">"새 글 준비" 탭에서 가장 최근에 생성한 원고 + 위 발행 순서에 포함된 이미지를 <code>post.txt</code> + <code>images/</code> 구조로 묶은 ZIP 하나로 내려받아요. 압축을 풀어서 <code>naver-publisher/posts/</code> 아래에 그대로 넣으면 바로 <code>publish.js</code>·<code>publish-rotate.js</code>에서 쓸 수 있어요.</p>
+      <div id="im-lastpost-info" class="hint" style="margin-top:0;">아직 이번 세션에서 생성한 원고가 없어요. 새 글 준비 탭에서 원고를 먼저 생성해주세요.</div>
+      <div class="actions">
+        <button class="btn primary" id="im-export-post-btn">이 글 내보내기 (원고+이미지 ZIP)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS PANEL -->
+  <section id="panel-accounts" class="panel">
+    <div class="tip">
+      여기서는 <b>계정 목록·하루 발행 한도만</b> 관리해요. 실제 네이버 로그인은 이 화면(브라우저 웹페이지)에서는 절대 하지 않습니다 — 비밀번호를 다루는 코드를 만들지 않기로 했었죠.
+      대신 대표님 컴퓨터에서 <code>naver-publisher/login.js</code>를 계정마다 딱 한 번 실행해서 직접 로그인하면 그 로그인 세션만 저장되고, 이후 발행은 그 세션을 재사용해요.
+      아래 목록은 "어떤 계정이 있고, 계정마다 하루에 몇 건까지 발행할지"를 정리해서 <code>accounts.json</code>으로 내보내는 용도예요 — 내보낸 파일을 <code>naver-publisher</code> 폴더에 그대로 덮어쓰면 됩니다.
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">계정 추가</p>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="acct-label">라벨 (별명)</label>
+          <input type="text" id="acct-label" placeholder="예: 민지">
+        </div>
+        <div class="field">
+          <label for="acct-blogid">블로그 ID</label>
+          <input type="text" id="acct-blogid" placeholder="blog.naver.com/여기">
+        </div>
+        <div class="field">
+          <label for="acct-limit">하루 발행 한도</label>
+          <input type="number" id="acct-limit" value="10" min="1">
+        </div>
+        <div class="field">
+          <label for="acct-note">메모 <span style="font-weight:400;">(선택)</span></label>
+          <input type="text" id="acct-note" placeholder="예: 부계정 · 기미크림 라인">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="acct-add-btn">계정 추가</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">등록된 계정 <span id="acct-count">— 0개</span></p>
+        <button class="btn ghost" id="acct-export-btn">accounts.json 다운로드</button>
+      </div>
+      <div id="acct-empty" class="hint">아직 등록된 계정이 없어요.</div>
+      <div id="acct-table-wrap" style="overflow-x:auto;">
+        <table id="acct-table" style="width:100%; border-collapse:collapse; font-size:13px;" hidden>
+          <thead>
+            <tr style="text-align:left; border-bottom:1px solid var(--border);">
+              <th style="padding:8px 6px;">라벨</th>
+              <th style="padding:8px 6px;">블로그 ID</th>
+              <th style="padding:8px 6px;">하루 한도</th>
+              <th style="padding:8px 6px;">메모</th>
+              <th style="padding:8px 6px;">로그인 세션</th>
+              <th style="padding:8px 6px;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="acct-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -1351,7 +1496,8 @@
       dl.className = "btn";
       dl.textContent = "이미지 다운로드";
       imgResult.appendChild(dl);
-      showToast("이미지 생성 완료");
+      if(window.addToImagePool){ window.addToImagePool(productLabel || "제품 이미지", "product", src, true, true); }
+      showToast("이미지 생성 완료 · 이미지 매니저에 자동으로 담겼어요");
       updateWorkStatus(workRow, "done", productLabel);
     }catch(e){
       imgResult.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
@@ -1372,6 +1518,7 @@
     var afterResult = $("p-after-image-result");
     var afterRefInput = $("p-after-refimg");
     var lastBeforeImageFile = null; // holds the generated BEFORE image so AFTER can reuse it as a reference
+    var lastBeforeImageDataUrl = null; // holds the generated BEFORE image data URL so AFTER can auto-composite with it
 
     function ratioToSize(ratio){
       if(ratio === "1:1") return "1024x1024";
@@ -1387,7 +1534,7 @@
       return new File([byteArray], filename, { type: "image/png" });
     }
 
-    async function generateImage(prompt, refFiles, resultEl, btnEl){
+    async function generateImage(prompt, refFiles, resultEl, btnEl, poolMeta){
       var originalLabel = btnEl.textContent;
       btnEl.disabled = true;
       btnEl.textContent = "생성 중... (최대 1분)";
@@ -1418,6 +1565,9 @@
         dl.className = "btn";
         dl.textContent = "이미지 다운로드";
         resultEl.appendChild(dl);
+        if(poolMeta && window.addToImagePool){
+          window.addToImagePool(poolMeta.label, poolMeta.category, src, poolMeta.included, true);
+        }
         showToast("이미지 생성 완료");
         return data.image_base64;
       }catch(e){
@@ -1433,8 +1583,9 @@
       beforeCard.hidden = false;
       var prompt = $("p-base").textContent;
       var workRow = logWork("인물 BEFORE 이미지 생성", "", "running");
-      var b64 = await generateImage(prompt, [], beforeResult, beforeBtn);
+      var b64 = await generateImage(prompt, [], beforeResult, beforeBtn, { label: "인물 BEFORE (원본)", category: "before", included: false });
       lastBeforeImageFile = b64 ? base64ToFile(b64, "persona_before.png") : null;
+      lastBeforeImageDataUrl = b64 ? ("data:image/png;base64," + b64) : null;
       updateWorkStatus(workRow, b64 ? "done" : "fail", b64 ? "" : "이미지 생성에 실패했어요");
     });
 
@@ -1451,7 +1602,17 @@
       }
       afterCard.hidden = false;
       var workRow = logWork("인물 AFTER 이미지 생성", "", "running");
-      var b64 = await generateImage(prompt, refFiles, afterResult, afterBtn);
+      var b64 = await generateImage(prompt, refFiles, afterResult, afterBtn, { label: "인물 AFTER (원본)", category: "after", included: false });
+      if(b64 && lastBeforeImageDataUrl && window.compositeBeforeAfterImages && window.addToImagePool){
+        try{
+          var afterDataUrl = "data:image/png;base64," + b64;
+          var compositeUrl = await window.compositeBeforeAfterImages(lastBeforeImageDataUrl, afterDataUrl);
+          window.addToImagePool("비포/애프터 합성 (자동)", "composite", compositeUrl, true, true);
+          showToast("BEFORE/AFTER 합성 완료 · 발행 순서에 자동으로 담겼어요");
+        }catch(e){
+          showToast("합성 자동화에 실패했어요 — 이미지 매니저 탭에서 수동으로 합성해주세요");
+        }
+      }
       updateWorkStatus(workRow, b64 ? "done" : "fail", b64 ? "" : "이미지 생성에 실패했어요");
     });
 
@@ -1459,10 +1620,460 @@
     ["p-new", "p-same"].forEach(function(id){
       $(id).addEventListener("click", function(){
         lastBeforeImageFile = null;
+        lastBeforeImageDataUrl = null;
         beforeCard.hidden = true;
         afterCard.hidden = true;
       });
     });
+  })();
+
+  // ================= IMAGE MANAGER (보관함 · 비포/애프터 합성 · 발행 순서) =================
+  (function(){
+    var CATEGORY_LABEL = {
+      product: "제품",
+      before: "인물 BEFORE",
+      after: "인물 AFTER",
+      composite: "비포/애프터 합성",
+      etc: "기타"
+    };
+
+    var pool = []; // { id, label, category, dataUrl, included, order }
+    var nextId = 1;
+
+    var poolGrid = $("im-pool-grid");
+    var poolEmpty = $("im-pool-empty");
+    var poolCount = $("im-pool-count");
+    var orderList = $("im-order-list");
+    var orderEmpty = $("im-order-empty");
+    var beforeSelect = $("im-before-select");
+    var afterSelect = $("im-after-select");
+
+    function addToImagePool(label, category, dataUrl, included, silent){
+      var item = {
+        id: nextId++,
+        label: label || "이미지",
+        category: CATEGORY_LABEL[category] ? category : "etc",
+        dataUrl: dataUrl,
+        included: included !== false
+      };
+      pool.push(item);
+      renderPool();
+      if(!silent) showToast("이미지 매니저에 담았어요");
+      return item;
+    }
+    window.addToImagePool = addToImagePool;
+    window.compositeBeforeAfterImages = compositeBeforeAfter;
+
+    function removeFromPool(id){
+      pool = pool.filter(function(it){ return it.id !== id; });
+      renderPool();
+    }
+
+    function renderPool(){
+      poolCount.textContent = "— " + pool.length + "장";
+      poolEmpty.hidden = pool.length > 0;
+      poolGrid.innerHTML = "";
+      pool.forEach(function(it){
+        var card = document.createElement("div");
+        card.className = "im-card";
+        var img = document.createElement("img");
+        img.src = it.dataUrl;
+        card.appendChild(img);
+
+        var sel = document.createElement("select");
+        Object.keys(CATEGORY_LABEL).forEach(function(k){
+          var opt = document.createElement("option");
+          opt.value = k;
+          opt.textContent = CATEGORY_LABEL[k];
+          if(k === it.category) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener("change", function(){ it.category = sel.value; renderOrderList(); });
+        card.appendChild(sel);
+
+        var labelP = document.createElement("p");
+        labelP.className = "hint";
+        labelP.style.margin = "0";
+        labelP.textContent = it.label;
+        card.appendChild(labelP);
+
+        var rmBtn = document.createElement("button");
+        rmBtn.type = "button";
+        rmBtn.className = "im-remove";
+        rmBtn.textContent = "삭제 ✕";
+        rmBtn.addEventListener("click", function(){ removeFromPool(it.id); });
+        card.appendChild(rmBtn);
+
+        poolGrid.appendChild(card);
+      });
+
+      // before/after selects for compositing
+      [beforeSelect, afterSelect].forEach(function(sel){
+        var prevValue = sel.value;
+        sel.innerHTML = "";
+        if(pool.length === 0){
+          var opt0 = document.createElement("option");
+          opt0.textContent = "(보관함에 이미지가 없어요)";
+          opt0.value = "";
+          sel.appendChild(opt0);
+        }
+        pool.forEach(function(it){
+          var opt = document.createElement("option");
+          opt.value = String(it.id);
+          opt.textContent = "#" + it.id + " · " + CATEGORY_LABEL[it.category] + " · " + it.label;
+          sel.appendChild(opt);
+        });
+        if(prevValue) sel.value = prevValue;
+      });
+
+      renderOrderList();
+    }
+
+    function renderOrderList(){
+      orderEmpty.hidden = pool.length > 0;
+      orderList.innerHTML = "";
+      var n = 0;
+      pool.forEach(function(it, idx){
+        var row = document.createElement("div");
+        row.className = "im-order-row" + (it.included ? "" : " im-excluded");
+
+        var num = document.createElement("div");
+        num.className = "im-order-num";
+        if(it.included){ n++; num.textContent = String(n); }
+        else { num.textContent = "–"; }
+        row.appendChild(num);
+
+        var img = document.createElement("img");
+        img.src = it.dataUrl;
+        row.appendChild(img);
+
+        var info = document.createElement("div");
+        info.className = "im-order-info";
+        var p1 = document.createElement("p");
+        p1.textContent = it.label;
+        var p2 = document.createElement("p");
+        p2.className = "im-order-cat";
+        p2.textContent = CATEGORY_LABEL[it.category];
+        info.appendChild(p1);
+        info.appendChild(p2);
+        row.appendChild(info);
+
+        var chkLabel = document.createElement("label");
+        chkLabel.style.display = "flex";
+        chkLabel.style.alignItems = "center";
+        chkLabel.style.gap = "4px";
+        chkLabel.style.fontSize = "12px";
+        chkLabel.style.flex = "0 0 auto";
+        var chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = it.included;
+        chk.addEventListener("change", function(){ it.included = chk.checked; renderOrderList(); });
+        chkLabel.appendChild(chk);
+        chkLabel.appendChild(document.createTextNode("사용"));
+        row.appendChild(chkLabel);
+
+        var btns = document.createElement("div");
+        btns.className = "im-order-btns";
+        var upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.textContent = "▲";
+        upBtn.disabled = idx === 0;
+        upBtn.addEventListener("click", function(){
+          if(idx === 0) return;
+          var tmp = pool[idx-1]; pool[idx-1] = pool[idx]; pool[idx] = tmp;
+          renderOrderList();
+        });
+        var downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.textContent = "▼";
+        downBtn.disabled = idx === pool.length - 1;
+        downBtn.addEventListener("click", function(){
+          if(idx === pool.length - 1) return;
+          var tmp = pool[idx+1]; pool[idx+1] = pool[idx]; pool[idx] = tmp;
+          renderOrderList();
+        });
+        btns.appendChild(upBtn);
+        btns.appendChild(downBtn);
+        row.appendChild(btns);
+
+        orderList.appendChild(row);
+      });
+    }
+
+    // ---- manual upload ----
+    $("im-upload").addEventListener("change", function(){
+      var files = Array.prototype.slice.call(this.files || []);
+      files.forEach(function(f){
+        var reader = new FileReader();
+        reader.onload = function(){
+          addToImagePool(f.name, "etc", reader.result);
+        };
+        reader.readAsDataURL(f);
+      });
+      this.value = "";
+    });
+
+    // ---- before/after composite (canvas) ----
+    function loadImageEl(src){
+      return new Promise(function(resolve, reject){
+        var img = new Image();
+        img.onload = function(){ resolve(img); };
+        img.onerror = function(){ reject(new Error("이미지를 불러오지 못했습니다")); };
+        img.src = src;
+      });
+    }
+
+    async function compositeBeforeAfter(beforeSrc, afterSrc){
+      var imgB = await loadImageEl(beforeSrc);
+      var imgA = await loadImageEl(afterSrc);
+      var targetH = Math.max(imgB.height, imgA.height, 600);
+      var scaleB = targetH / imgB.height, scaleA = targetH / imgA.height;
+      var wB = Math.round(imgB.width * scaleB), wA = Math.round(imgA.width * scaleA);
+      var gap = 6;
+      var canvas = document.createElement("canvas");
+      canvas.width = wB + wA + gap;
+      canvas.height = targetH;
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imgB, 0, 0, wB, targetH);
+      ctx.drawImage(imgA, wB + gap, 0, wA, targetH);
+
+      function labelBar(x, w, text){
+        var barH = Math.max(34, Math.round(targetH * 0.06));
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(x, 0, w, barH);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold " + Math.round(barH * 0.5) + "px 'Noto Sans KR', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, x + w / 2, barH / 2 + 1);
+      }
+      labelBar(0, wB, "사용 전");
+      labelBar(wB + gap, wA, "사용 후");
+
+      return canvas.toDataURL("image/png");
+    }
+
+    $("im-composite-btn").addEventListener("click", async function(){
+      var beforeId = parseInt(beforeSelect.value, 10);
+      var afterId = parseInt(afterSelect.value, 10);
+      if(!beforeId || !afterId){ showToast("비포/애프터 이미지를 먼저 보관함에 담아주세요"); return; }
+      if(beforeId === afterId){ showToast("비포와 애프터는 서로 다른 이미지를 골라주세요"); return; }
+      var beforeItem = pool.filter(function(it){ return it.id === beforeId; })[0];
+      var afterItem = pool.filter(function(it){ return it.id === afterId; })[0];
+      if(!beforeItem || !afterItem) return;
+      try{
+        var dataUrl = await compositeBeforeAfter(beforeItem.dataUrl, afterItem.dataUrl);
+        addToImagePool("비포/애프터 합성", "composite", dataUrl);
+      }catch(e){
+        showToast("합성에 실패했어요: " + String(e.message || e));
+      }
+    });
+
+    // ---- export: numbered ZIP + manifest.json ----
+    function dataUrlToUint8Array(dataUrl){
+      var base64 = dataUrl.split(",")[1];
+      var byteChars = atob(base64);
+      var bytes = new Uint8Array(byteChars.length);
+      for(var i = 0; i < byteChars.length; i++){ bytes[i] = byteChars.charCodeAt(i); }
+      return bytes;
+    }
+
+    function buildImageManifest(zip, folderPrefix){
+      // folderPrefix: zip 안에서 이미지들을 넣을 상대 경로 접두어 ("" 또는 "images/")
+      var included = pool.filter(function(it){ return it.included; });
+      var manifest = { generatedAt: new Date().toISOString(), images: [] };
+      included.forEach(function(it, idx){
+        var no = idx + 1;
+        var noStr = no < 10 ? "0" + no : String(no);
+        var filename = noStr + "_" + CATEGORY_LABEL[it.category].replace(/[\s\/]/g, "") + ".png";
+        zip.file(folderPrefix + filename, dataUrlToUint8Array(it.dataUrl));
+        manifest.images.push({ order: no, filename: filename, category: it.category, label: it.label });
+      });
+      zip.file(folderPrefix + "manifest.json", JSON.stringify(manifest, null, 2));
+      return included.length;
+    }
+
+    function triggerZipDownload(zip, filename){
+      return zip.generateAsync({ type: "blob" }).then(function(blob){
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      });
+    }
+
+    $("im-export-btn").addEventListener("click", async function(){
+      var includedCount = pool.filter(function(it){ return it.included; }).length;
+      if(includedCount === 0){ showToast("사용할 이미지를 하나 이상 체크해주세요"); return; }
+      if(!window.JSZip){ showToast("ZIP 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요"); return; }
+
+      var zip = new JSZip();
+      buildImageManifest(zip, "");
+      await triggerZipDownload(zip, "image_manifest_" + Date.now() + ".zip");
+      showToast("ZIP을 내려받았어요 (" + includedCount + "장)");
+    });
+
+    // ---- "이 글 내보내기": 원고(post.txt) + images/ 를 naver-publisher가 바로 읽는 posts/<글이름>/ 구조로 묶기 ----
+    var lastPostInfoEl = $("im-lastpost-info");
+    function slugifyForFolder(s){
+      return String(s || "post")
+        .trim()
+        .replace(/[\\/:*?"<>|]/g, "")
+        .replace(/\s+/g, "_")
+        .slice(0, 40) || "post";
+    }
+    function updateLastPostInfo(){
+      if(!lastPostInfoEl) return;
+      var lp = window.__lastRiarPost;
+      if(!lp){
+        lastPostInfoEl.textContent = "아직 이번 세션에서 생성한 원고가 없어요. 새 글 준비 탭에서 원고를 먼저 생성해주세요.";
+        return;
+      }
+      var ago = Math.max(0, Math.round((Date.now() - lp.generatedAt) / 1000));
+      lastPostInfoEl.textContent = "최근 생성 원고: \"" + lp.keyword + "\" (" + ago + "초 전) — 이걸 내보내요.";
+    }
+
+    $("im-export-post-btn").addEventListener("click", async function(){
+      var lp = window.__lastRiarPost;
+      if(!lp || !lp.text){
+        showToast("먼저 새 글 준비 탭에서 원고를 생성해주세요");
+        return;
+      }
+      if(!window.JSZip){ showToast("ZIP 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요"); return; }
+
+      var folderName = slugifyForFolder(lp.keyword) + "_" + new Date().toISOString().slice(0,10).replace(/-/g,"");
+      var zip = new JSZip();
+      zip.file(folderName + "/post.txt", lp.text);
+      var imgCount = buildImageManifest(zip, folderName + "/images/");
+
+      await triggerZipDownload(zip, folderName + ".zip");
+      showToast("내보내기 완료 (이미지 " + imgCount + "장 포함). naver-publisher/posts/ 안에 압축을 풀어주세요");
+    });
+
+    $("im-clear-btn").addEventListener("click", function(){
+      if(pool.length === 0) return;
+      pool = [];
+      renderPool();
+      showToast("보관함을 비웠어요");
+    });
+
+    $("tab-imagemanager").addEventListener("click", updateLastPostInfo);
+
+    renderPool();
+    updateLastPostInfo();
+  })();
+
+  // ================= ACCOUNTS (계정 관리 — accounts.json 내보내기 전용, 로그인은 로컬 스크립트에서) =================
+  (function(){
+    var STORAGE_KEY = "did_naver_accounts_v1";
+    var accounts = [];
+
+    function loadFromStorage(){
+      try{
+        var raw = localStorage.getItem(STORAGE_KEY);
+        accounts = raw ? JSON.parse(raw) : [];
+        if(!Array.isArray(accounts)) accounts = [];
+      }catch(e){ accounts = []; }
+    }
+    function saveToStorage(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts)); }catch(e){ /* 저장 실패해도 화면 동작은 계속 */ }
+    }
+
+    var tableEl = $("acct-table");
+    var tbodyEl = $("acct-tbody");
+    var emptyEl = $("acct-empty");
+    var countEl = $("acct-count");
+
+    function render(){
+      countEl.textContent = "— " + accounts.length + "개";
+      emptyEl.hidden = accounts.length > 0;
+      tableEl.hidden = accounts.length === 0;
+      tbodyEl.innerHTML = "";
+      accounts.forEach(function(acct, idx){
+        var tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border)";
+
+        function td(content){
+          var cell = document.createElement("td");
+          cell.style.padding = "8px 6px";
+          if(typeof content === "string") cell.textContent = content;
+          else cell.appendChild(content);
+          return cell;
+        }
+
+        tr.appendChild(td(acct.label));
+        tr.appendChild(td(acct.blogId));
+
+        var limitInput = document.createElement("input");
+        limitInput.type = "number";
+        limitInput.min = "1";
+        limitInput.value = acct.dailyLimit;
+        limitInput.style.width = "70px";
+        limitInput.addEventListener("change", function(){
+          acct.dailyLimit = parseInt(limitInput.value, 10) || 1;
+          saveToStorage();
+        });
+        tr.appendChild(td(limitInput));
+
+        tr.appendChild(td(acct.note || ""));
+        tr.appendChild(td("naver-publisher/login.js " + acct.label));
+
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "btn ghost";
+        delBtn.textContent = "삭제";
+        delBtn.addEventListener("click", function(){
+          accounts.splice(idx, 1);
+          saveToStorage();
+          render();
+        });
+        tr.appendChild(td(delBtn));
+
+        tbodyEl.appendChild(tr);
+      });
+    }
+
+    $("acct-add-btn").addEventListener("click", function(){
+      var label = $("acct-label").value.trim();
+      var blogId = $("acct-blogid").value.trim();
+      var dailyLimit = parseInt($("acct-limit").value, 10) || 10;
+      var note = $("acct-note").value.trim();
+      if(!label || !blogId){ showToast("라벨과 블로그 ID를 입력해주세요"); return; }
+      if(accounts.some(function(a){ return a.label === label; })){ showToast("이미 있는 라벨이에요"); return; }
+
+      accounts.push({ label: label, blogId: blogId, dailyLimit: dailyLimit, note: note });
+      saveToStorage();
+      render();
+      $("acct-label").value = ""; $("acct-blogid").value = ""; $("acct-note").value = "";
+      $("acct-limit").value = "10";
+      showToast("계정을 추가했어요. naver-publisher에서 쓰려면 로컬에서 login.js " + label + " 도 한 번 실행해주세요");
+    });
+
+    $("acct-export-btn").addEventListener("click", function(){
+      if(accounts.length === 0){ showToast("등록된 계정이 없어요"); return; }
+      var exportData = accounts.map(function(a){
+        return { label: a.label, blogId: a.blogId, dailyLimit: a.dailyLimit, note: a.note || "" };
+      });
+      var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "accounts.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      showToast("accounts.json을 내려받았어요 — naver-publisher 폴더에 덮어써주세요");
+    });
+
+    loadFromStorage();
+    render();
   })();
 
   // ================= WRITER (server API call) =================
@@ -1691,6 +2302,10 @@
         "- 소제목 앞뒤로는 빈 줄을 2줄씩 넣는다.\n" +
         "- 마침표가 있어도 한 줄에 다 쓰지 않고 주어/서술어, 접속사 앞 등 자연스러운 끊어 읽기 지점에서 줄을 바꾼다.\n" +
         "- 이 포맷은 산문형 초안을 다 쓴 뒤 마지막 단계에서 반드시 적용해서 출력한다.\n\n" +
+        "[소제목 표시 규칙 — 필수]\n" +
+        "- 소제목은 마크다운 별표(**소제목**)로 감싸지 않는다. 네이버 블로그 에디터에 붙여넣으면 별표가 그대로 텍스트로 보여서 지저분해진다.\n" +
+        "- 대신 소제목 줄의 맨 앞에 반드시 \"▶ \" 기호 하나만 붙이고, 그 줄에는 소제목 텍스트만 쓴다. 예: \"▶ 약국에서 기미크림 구매, 가격 확인\"\n" +
+        "- 본문 문장 중간이나 강조하고 싶은 단어에도 별표(**)를 절대 쓰지 않는다.\n\n" +
         "[구조 규칙]\n" +
         "- 전체 분량: 공백 제외 " + v.minLen + "~" + v.maxLen + "자로 정확히 맞춘다. 이건 권장이 아니라 필수 조건이다. 공백 제외 " + v.minLen + "자에 못 미치면 그 원고는 실패작으로 간주한다.\n" +
         "- 분량을 채우기 위해 소제목 6~7개 각각을 최소 3~4개 문단(문단당 2~4문장)으로 충분히 길게 써라. 한두 문장짜리 소제목 섹션을 이어붙이는 방식으로는 목표 분량에 절대 도달하지 못한다.\n" +
@@ -2247,6 +2862,14 @@
           setCharCount(result.text);
           runComplianceChecks(result.text, result.skipDisclosure);
 
+          // 이미지 매니저의 "이 글 내보내기"가 naver-publisher 스크립트용 post.txt를 만들 때 쓸 수 있도록,
+          // 가장 최근에 생성된 리아르 원고를 기억해둔다.
+          window.__lastRiarPost = {
+            keyword: rows[i].keyword,
+            text: result.text,
+            generatedAt: Date.now()
+          };
+
           // 재시도가 있었든 없었든 항상 진단 정보를 보여준다 — 개발자도구 없이도 재시도가 실제로
           // 발동됐는지, 자동 정리(모델의 자기 마무리 문구 제거) 과정에서 글자가 많이 잘렸는지 바로 보이게.
           var diag = document.createElement("div");
@@ -2272,6 +2895,19 @@
             extNote.style.borderColor = "var(--accent)";
             extNote.innerHTML = "<span style='font-weight:700; color:var(--accent);'>분량 자동 보정</span> <span class='hint'>초안이 목표 분량보다 짧아서 " + result.extendAttempts + "회 더 길게 다시 써달라고 자동 재요청했어요.</span>";
             checksEl.appendChild(extNote);
+          }
+
+          // 소제목은 "▶ " 로만 표시되어 나온다 (마크다운 **는 네이버 에디터에 그대로 별표로 보여서 쓰지 않음).
+          // 이 툴은 네이버 에디터 화면을 직접 조작할 수 없어서 인용구 버튼을 자동으로 눌러줄 수는 없고,
+          // 어떤 줄을 인용구로 바꿔야 하는지 사용자가 바로 찾을 수 있도록 매번 안내만 띄워준다.
+          var subheadCount = (result.text.match(/^▶ .+$/gm) || []).length;
+          if(subheadCount > 0){
+            var quoteNote = document.createElement("div");
+            quoteNote.className = "card";
+            quoteNote.style.padding = "10px 14px";
+            quoteNote.style.borderColor = "var(--border)";
+            quoteNote.innerHTML = "<span style='font-weight:700;'>블로그 발행 시 인용구 처리</span> <span class='hint'>\"▶ \"로 표시된 소제목이 " + subheadCount + "개 있어요. 네이버 에디터에 붙여넣은 뒤, 그 줄들을 하나씩 드래그해서 상단 \"인용구\" 버튼을 누르고 \"▶ \" 기호는 지워주세요. 이 툴에서 인용구 버튼을 대신 눌러줄 수는 없어서, 표시만 해두고 마지막 적용은 직접 해주셔야 해요.</span>";
+            checksEl.appendChild(quoteNote);
           }
           if(showStatusList){
             statusRows[i].querySelector(".badge").className = "badge done";
