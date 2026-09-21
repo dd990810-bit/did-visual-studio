@@ -161,6 +161,42 @@
   textarea{resize:vertical; min-height:64px; font-family:inherit;}
   .hint{font-size:12px; color:var(--text-muted); margin-top:2px;}
 
+  /* ---------- workflow map ---------- */
+  .wf-lane-tag{
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+    letter-spacing:.02em; padding:6px 12px; border-radius:999px; margin:20px 0 12px;
+  }
+  .wf-lane-tag:first-child{margin-top:0;}
+  .wf-lane-tag.web{background:var(--accent-soft); color:var(--accent);}
+  .wf-lane-tag.local{background:var(--surface-2); color:var(--accent-2); border:1px solid var(--border);}
+  .wf-stage{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .wf-stage-head{display:flex; align-items:flex-start; gap:12px;}
+  .wf-num{
+    width:24px; height:24px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:none;
+  }
+  .wf-stage-title{font-weight:700; font-size:14.5px; margin:0 0 3px;}
+  .wf-stage-desc{font-size:12.5px; color:var(--text-muted); margin:0;}
+  .wf-substeps{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .wf-node{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    padding:9px 12px; font-size:12.5px; font-weight:600; display:flex; align-items:center;
+    gap:7px; flex:1 1 170px;
+  }
+  .wf-node .em{font-size:14px; flex:none;}
+  .wf-arrow{
+    display:flex; justify-content:center; align-items:center; gap:6px;
+    padding:6px 0; color:var(--text-muted); font-size:13px;
+  }
+  .wf-arrow .glyph{font-size:16px; line-height:1;}
+  .wf-loop{
+    margin-top:16px; padding:13px 16px; border:1px dashed var(--accent-2); border-radius:12px;
+    font-size:12.5px; color:var(--accent-2); text-align:center;
+  }
+
   .actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
   button.btn{
     appearance:none; border:1px solid var(--border); background:var(--surface-2); color:var(--text);
@@ -291,6 +327,7 @@
     <nav class="side-nav" role="tablist">
       <p class="nav-group-label">콘텐츠 워크플로우</p>
       <button class="tab active" id="tab-postmanage" data-tab="postmanage" data-label="글 관리" role="tab" aria-selected="true"><span class="nav-icon">📋</span>글 관리</button>
+      <button class="tab" id="tab-workflow" data-tab="workflow" data-label="전체 흐름" role="tab" aria-selected="false"><span class="nav-icon">🧭</span>전체 흐름</button>
       <button class="tab" id="tab-writer" data-tab="writer" data-label="새 글 준비" role="tab" aria-selected="false"><span class="nav-icon">✍️</span>새 글 준비</button>
       <button class="tab" id="tab-research" data-tab="research" data-label="검색 리서치" role="tab" aria-selected="false"><span class="nav-icon">🔎</span>검색 리서치</button>
       <button class="tab" id="tab-worklog" data-tab="worklog" data-label="작업 기록" role="tab" aria-selected="false"><span class="nav-icon">🗂️</span>작업 기록</button>
@@ -335,6 +372,115 @@
         <p class="hint" style="margin:0;">아직 생성된 원고가 없습니다. 왼쪽 메뉴에서 <b>"새 글 준비"</b>로 이동해 원고를 만들어보세요.</p>
       </div>
       <div id="postmanage-list" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </section>
+
+    <!-- WORKFLOW MAP PANEL -->
+    <section id="panel-workflow" class="panel">
+      <div class="tip">
+        지금까지 만든 기능들이 <b>어떤 순서로 이어지는지</b> 한눈에 보여드려요. 메이크·n8n처럼 실제로 실행되는 자동화 노드는 아니고,
+        "뭘 어떤 순서로 누르면 되는지" 보여주는 지도예요. 🌐 표시는 이 웹페이지(브라우저)에서, 🖥️ 표시는 <b>대표님 컴퓨터</b>에서
+        (<code>naver-publisher</code> 폴더) 하는 단계예요.
+      </div>
+
+      <span class="wf-lane-tag web">🌐 웹앱(브라우저)에서</span>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">1</div>
+          <div>
+            <p class="wf-stage-title">이미지 소재 준비</p>
+            <p class="wf-stage-desc">아래 3가지를 원하는 순서로 생성 — 만드는 즉시 "이미지 매니저"에 자동으로 쌓여요</p>
+          </div>
+        </div>
+        <div class="wf-substeps">
+          <div class="wf-node"><span class="em">👤</span>인물 페르소나 — BEFORE → AFTER (자동 합성)</div>
+          <div class="wf-node"><span class="em">🛍️</span>제품 실사 이미지 — 자사 제품 (브랜드: 리아르 등)</div>
+          <div class="wf-node"><span class="em">🛍️</span>제품 실사 이미지 — 경쟁사 비교군</div>
+        </div>
+      </div>
+
+      <div class="wf-arrow"><span class="glyph">↓</span>모두 자동으로 이미지 매니저에 모여요</div>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">2</div>
+          <div>
+            <p class="wf-stage-title">원고 작성</p>
+            <p class="wf-stage-desc">"새 글 준비" 탭에서 키워드로 리아르 원고 생성 (▶ 소제목 마커 자동 포함)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-arrow"><span class="glyph">↓</span></div>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">3</div>
+          <div>
+            <p class="wf-stage-title">이미지 매니저에서 정리 · 내보내기</p>
+            <p class="wf-stage-desc">발행 순서 확인·조정 후 "이 글 내보내기" 클릭</p>
+          </div>
+        </div>
+        <div class="wf-substeps">
+          <div class="wf-node"><span class="em">🗂️</span>발행 순서 정리 (포함/제외, 순서 변경)</div>
+          <div class="wf-node"><span class="em">📦</span>"이 글 내보내기" → zip 다운로드</div>
+        </div>
+      </div>
+
+      <div class="wf-arrow"><span class="glyph">↓</span></div>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">4</div>
+          <div>
+            <p class="wf-stage-title">계정 등록 <span style="font-weight:400; color:var(--text-muted);">— 계정당 최초 1번만</span></p>
+            <p class="wf-stage-desc">"계정 관리" 탭에서 라벨·블로그ID·하루 한도 입력 → accounts.json 다운로드</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-arrow"><span class="glyph">↓</span></div>
+
+      <span class="wf-lane-tag local">🖥️ 대표님 컴퓨터에서 (naver-publisher 폴더)</span>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">5</div>
+          <div>
+            <p class="wf-stage-title">파일 옮기기</p>
+            <p class="wf-stage-desc">3번에서 받은 zip을 풀어서 <code>posts/</code> 안에, 4번에서 받은 accounts.json을 폴더 최상단에 넣기</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-arrow"><span class="glyph">↓</span></div>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">6</div>
+          <div>
+            <p class="wf-stage-title">계정 로그인 <span style="font-weight:400; color:var(--text-muted);">— 계정마다 최초 1번만</span></p>
+            <p class="wf-stage-desc"><code>2_login.bat</code> 더블클릭 → 뜨는 브라우저에서 직접 로그인 → 터미널로 돌아와 Enter (세션 저장)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-arrow"><span class="glyph">↓</span></div>
+
+      <div class="wf-stage">
+        <div class="wf-stage-head">
+          <div class="wf-num">7</div>
+          <div>
+            <p class="wf-stage-title">발행</p>
+            <p class="wf-stage-desc"><code>3_publish.bat</code> 더블클릭 → 먼저 1(dry-run)로 확인 → 이상 없으면 2(진짜 발행). 계정 하나 한도를 다 채우면 자동으로 다음 계정으로 넘어가요.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-loop">
+        🔁 다음 글도 발행하려면 1·2·3단계(이미지 → 원고 → 내보내기)부터 다시 반복하면 돼요.
+        계정 등록(4번)과 로그인(6번)은 그 계정에 대해 딱 한 번만 하면, 그다음부턴 매번 다시 안 해도 돼요.
+      </div>
     </section>
 
     <!-- SEARCH RESEARCH PANEL (placeholder) -->
