@@ -164,37 +164,47 @@
   /* ---------- workflow map ---------- */
   .wf-lane-tag{
     display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
-    letter-spacing:.02em; padding:6px 12px; border-radius:999px; margin:20px 0 12px;
+    letter-spacing:.02em; padding:6px 12px; border-radius:999px; margin:18px 0 10px;
   }
   .wf-lane-tag:first-child{margin-top:0;}
   .wf-lane-tag.web{background:var(--accent-soft); color:var(--accent);}
   .wf-lane-tag.local{background:var(--surface-2); color:var(--accent-2); border:1px solid var(--border);}
+
+  .wf-row{display:flex; flex-wrap:wrap; align-items:center; gap:4px 2px;}
+  .wf-sep{color:var(--text-muted); font-size:15px; flex:none; padding:0 3px; align-self:center;}
+
   .wf-stage{
-    background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    padding:16px 18px; box-shadow:var(--shadow);
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:11px 13px; box-shadow:var(--shadow);
+    flex:1 1 190px; max-width:230px; min-width:170px;
   }
-  .wf-stage-head{display:flex; align-items:flex-start; gap:12px;}
+  .wf-stage.wide{flex-basis:100%; max-width:none;}
+  .wf-stage-head{display:flex; align-items:flex-start; gap:8px;}
   .wf-num{
-    width:24px; height:24px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
-    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:none;
+    width:19px; height:19px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex:none;
+    margin-top:1px;
   }
-  .wf-stage-title{font-weight:700; font-size:14.5px; margin:0 0 3px;}
-  .wf-stage-desc{font-size:12.5px; color:var(--text-muted); margin:0;}
-  .wf-substeps{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .wf-stage-title{font-weight:700; font-size:13px; margin:0 0 2px; line-height:1.3;}
+  .wf-stage-title .note{font-weight:400; color:var(--text-muted); font-size:11px;}
+  .wf-stage-desc{font-size:11px; color:var(--text-muted); margin:0; line-height:1.45;}
+
+  .wf-substeps{display:flex; flex-wrap:wrap; gap:6px; margin-top:9px;}
   .wf-node{
-    background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
-    padding:9px 12px; font-size:12.5px; font-weight:600; display:flex; align-items:center;
-    gap:7px; flex:1 1 170px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px;
+    padding:7px 10px; font-size:11.5px; font-weight:600; display:flex; align-items:center;
+    gap:6px; flex:1 1 180px;
   }
-  .wf-node .em{font-size:14px; flex:none;}
-  .wf-arrow{
-    display:flex; justify-content:center; align-items:center; gap:6px;
-    padding:6px 0; color:var(--text-muted); font-size:13px;
+  .wf-node .em{font-size:13px; flex:none;}
+
+  .wf-merge{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:11px; color:var(--text-muted); margin:2px 0;
   }
-  .wf-arrow .glyph{font-size:16px; line-height:1;}
+
   .wf-loop{
-    margin-top:16px; padding:13px 16px; border:1px dashed var(--accent-2); border-radius:12px;
-    font-size:12.5px; color:var(--accent-2); text-align:center;
+    margin-top:14px; padding:12px 15px; border:1px dashed var(--accent-2); border-radius:12px;
+    font-size:12px; color:var(--accent-2); text-align:center; line-height:1.6;
   }
 
   .actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
@@ -384,95 +394,100 @@
 
       <span class="wf-lane-tag web">🌐 웹앱(브라우저)에서</span>
 
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">1</div>
-          <div>
-            <p class="wf-stage-title">이미지 소재 준비</p>
-            <p class="wf-stage-desc">아래 3가지를 원하는 순서로 생성 — 만드는 즉시 "이미지 매니저"에 자동으로 쌓여요</p>
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">1a</div>
+            <div>
+              <p class="wf-stage-title">인물 페르소나</p>
+              <p class="wf-stage-desc">BEFORE → AFTER<br>(자동 합성)</p>
+            </div>
           </div>
         </div>
-        <div class="wf-substeps">
-          <div class="wf-node"><span class="em">👤</span>인물 페르소나 — BEFORE → AFTER (자동 합성)</div>
-          <div class="wf-node"><span class="em">🛍️</span>제품 실사 이미지 — 자사 제품 (브랜드: 리아르 등)</div>
-          <div class="wf-node"><span class="em">🛍️</span>제품 실사 이미지 — 경쟁사 비교군</div>
-        </div>
-      </div>
-
-      <div class="wf-arrow"><span class="glyph">↓</span>모두 자동으로 이미지 매니저에 모여요</div>
-
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">2</div>
-          <div>
-            <p class="wf-stage-title">원고 작성</p>
-            <p class="wf-stage-desc">"새 글 준비" 탭에서 키워드로 리아르 원고 생성 (▶ 소제목 마커 자동 포함)</p>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">1b</div>
+            <div>
+              <p class="wf-stage-title">제품 실사 — 자사</p>
+              <p class="wf-stage-desc">브랜드: 리아르 등</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="wf-arrow"><span class="glyph">↓</span></div>
-
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">3</div>
-          <div>
-            <p class="wf-stage-title">이미지 매니저에서 정리 · 내보내기</p>
-            <p class="wf-stage-desc">발행 순서 확인·조정 후 "이 글 내보내기" 클릭</p>
-          </div>
-        </div>
-        <div class="wf-substeps">
-          <div class="wf-node"><span class="em">🗂️</span>발행 순서 정리 (포함/제외, 순서 변경)</div>
-          <div class="wf-node"><span class="em">📦</span>"이 글 내보내기" → zip 다운로드</div>
-        </div>
-      </div>
-
-      <div class="wf-arrow"><span class="glyph">↓</span></div>
-
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">4</div>
-          <div>
-            <p class="wf-stage-title">계정 등록 <span style="font-weight:400; color:var(--text-muted);">— 계정당 최초 1번만</span></p>
-            <p class="wf-stage-desc">"계정 관리" 탭에서 라벨·블로그ID·하루 한도 입력 → accounts.json 다운로드</p>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">1c</div>
+            <div>
+              <p class="wf-stage-title">제품 실사 — 대조군</p>
+              <p class="wf-stage-desc">브랜드: 경쟁사 비교군</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="wf-arrow"><span class="glyph">↓</span></div>
+      <div class="wf-merge">↓ 셋 다 자동으로 이미지 매니저에 모여요</div>
+
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">2</div>
+            <div>
+              <p class="wf-stage-title">원고 작성</p>
+              <p class="wf-stage-desc">새 글 준비 → 키워드로 생성</p>
+            </div>
+          </div>
+        </div>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">3</div>
+            <div>
+              <p class="wf-stage-title">이미지 매니저 정리</p>
+              <p class="wf-stage-desc">순서 확인 → "이 글 내보내기"(zip)</p>
+            </div>
+          </div>
+        </div>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">4</div>
+            <div>
+              <p class="wf-stage-title">계정 등록 <span class="note">최초 1회</span></p>
+              <p class="wf-stage-desc">계정 관리 → accounts.json</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <span class="wf-lane-tag local">🖥️ 대표님 컴퓨터에서 (naver-publisher 폴더)</span>
 
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">5</div>
-          <div>
-            <p class="wf-stage-title">파일 옮기기</p>
-            <p class="wf-stage-desc">3번에서 받은 zip을 풀어서 <code>posts/</code> 안에, 4번에서 받은 accounts.json을 폴더 최상단에 넣기</p>
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">5</div>
+            <div>
+              <p class="wf-stage-title">파일 옮기기</p>
+              <p class="wf-stage-desc">zip→posts/, accounts.json 넣기</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="wf-arrow"><span class="glyph">↓</span></div>
-
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">6</div>
-          <div>
-            <p class="wf-stage-title">계정 로그인 <span style="font-weight:400; color:var(--text-muted);">— 계정마다 최초 1번만</span></p>
-            <p class="wf-stage-desc"><code>2_login.bat</code> 더블클릭 → 뜨는 브라우저에서 직접 로그인 → 터미널로 돌아와 Enter (세션 저장)</p>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">6</div>
+            <div>
+              <p class="wf-stage-title">로그인 <span class="note">계정당 1회</span></p>
+              <p class="wf-stage-desc">2_login.bat → 직접 로그인</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="wf-arrow"><span class="glyph">↓</span></div>
-
-      <div class="wf-stage">
-        <div class="wf-stage-head">
-          <div class="wf-num">7</div>
-          <div>
-            <p class="wf-stage-title">발행</p>
-            <p class="wf-stage-desc"><code>3_publish.bat</code> 더블클릭 → 먼저 1(dry-run)로 확인 → 이상 없으면 2(진짜 발행). 계정 하나 한도를 다 채우면 자동으로 다음 계정으로 넘어가요.</p>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">7</div>
+            <div>
+              <p class="wf-stage-title">발행</p>
+              <p class="wf-stage-desc">3_publish.bat → 1(확인)→2(실제)</p>
+            </div>
           </div>
         </div>
       </div>
