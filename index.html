@@ -5,31 +5,38 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>비주얼 프롬프트 스튜디오</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root{
-    --bg:#eef0ee; --surface:#ffffff; --surface-2:#e3e7e2; --border:#d2d7d0;
-    --text:#181b18; --text-muted:#5f665f;
-    --accent:#a5672c; --accent-ink:#ffffff;
-    --accent-2:#2f6d60; --accent-2-ink:#ffffff;
-    --danger:#a5402a; --good:#2f6d47;
-    --shadow: 0 1px 2px rgba(20,20,16,.06), 0 8px 24px -12px rgba(20,20,16,.18);
+    --bg:#f6f8f6; --surface:#ffffff; --surface-2:#f0f3f0; --border:#e3e8e3;
+    --text:#15201a; --text-muted:#6b756f;
+    --accent:#16a34a; --accent-ink:#ffffff;
+    --accent-soft:#e9f7ef;
+    --accent-2:#0f766e; --accent-2-ink:#ffffff;
+    --danger:#b3261e; --good:#16a34a;
+    --sidebar:#ffffff;
+    --shadow: 0 1px 2px rgba(16,24,18,.04), 0 10px 28px -14px rgba(16,24,18,.14);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#14161a; --surface:#1c1f24; --surface-2:#252a32; --border:#343a44;
-      --text:#edeff2; --text-muted:#8d94a0;
-      --accent:#d9a15c; --accent-ink:#1a140b;
-      --accent-2:#5fae9d; --accent-2-ink:#0c1f1b;
-      --danger:#e08769; --good:#7bc99a;
+      --bg:#12161a; --surface:#1a1f24; --surface-2:#212830; --border:#2c343d;
+      --text:#e9edf0; --text-muted:#8d97a0;
+      --accent:#3ecf76; --accent-ink:#0a1a10;
+      --accent-soft:#173323;
+      --accent-2:#4fc0b3; --accent-2-ink:#04211d;
+      --danger:#e2685c; --good:#3ecf76;
+      --sidebar:#171b20;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
     }
   }
   :root[data-theme="dark"]{
-    --bg:#14161a; --surface:#1c1f24; --surface-2:#252a32; --border:#343a44;
-    --text:#edeff2; --text-muted:#8d94a0;
-    --accent:#d9a15c; --accent-ink:#1a140b;
-    --accent-2:#5fae9d; --accent-2-ink:#0c1f1b;
-    --danger:#e08769; --good:#7bc99a;
+    --bg:#12161a; --surface:#1a1f24; --surface-2:#212830; --border:#2c343d;
+    --text:#e9edf0; --text-muted:#8d97a0;
+    --accent:#3ecf76; --accent-ink:#0a1a10;
+    --accent-soft:#173323;
+    --accent-2:#4fc0b3; --accent-2-ink:#04211d;
+    --danger:#e2685c; --good:#3ecf76;
+    --sidebar:#171b20;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
   }
 
@@ -38,32 +45,90 @@
     margin:0;
     background:var(--bg); color:var(--text);
     font-family:"Noto Sans KR", system-ui, sans-serif;
-    padding-inline:16px; padding-block:28px 60px;
     line-height:1.55;
   }
-  .page{max-width:920px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
 
+  .app-shell{display:flex; min-height:100vh; align-items:flex-start;}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    width:250px; flex:0 0 250px; min-height:100vh; background:var(--sidebar);
+    border-right:1px solid var(--border); padding:22px 16px; display:flex;
+    flex-direction:column; gap:26px; position:sticky; top:0;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:0 6px;}
+  .brand-icon{
+    width:34px; height:34px; border-radius:9px; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex:none;
+  }
+  .brand-text{display:flex; flex-direction:column; line-height:1.25; min-width:0;}
+  .brand-text strong{font-size:13px; font-weight:700; color:var(--text);}
+  .brand-text span{font-size:11px; color:var(--text-muted);}
+
+  .side-nav{display:flex; flex-direction:column; gap:3px;}
+  .nav-group-label{
+    font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-muted); margin:14px 12px 4px; opacity:.75;
+  }
+  .nav-group-label:first-child{margin-top:2px;}
+  .side-nav .tab{
+    appearance:none; border:none; background:transparent; color:var(--text-muted);
+    font-family:inherit; font-size:13.5px; font-weight:600; padding:10px 12px;
+    border-radius:9px; cursor:pointer; white-space:nowrap; text-align:left;
+    display:flex; align-items:center; gap:10px; width:100%;
+  }
+  .side-nav .tab .nav-icon{font-size:15px; flex:none; width:18px; text-align:center;}
+  .side-nav .tab:hover{background:var(--surface-2); color:var(--text);}
+  .side-nav .tab.active{background:var(--accent-soft); color:var(--accent);}
+  .tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .sidebar-foot{margin-top:auto; display:flex; flex-direction:column; gap:10px;}
+  .foot-note{
+    font-size:11.5px; color:var(--text-muted); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:0;
+  }
+
+  /* ---------- main ---------- */
+  .main{flex:1; min-width:0; padding:26px 32px 60px; max-width:1000px;}
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-bottom:22px; flex-wrap:wrap;
+  }
+  .breadcrumb{font-size:12.5px; color:var(--text-muted); margin:0;}
+  .breadcrumb span{color:var(--text); font-weight:600;}
+  .status-pill{
+    display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600;
+    color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border);
+    padding:6px 12px; border-radius:999px;
+  }
+  .status-pill .dot{width:7px; height:7px; border-radius:50%; background:var(--text-muted); flex:none;}
+  .status-pill.ok{color:var(--good);}
+  .status-pill.ok .dot{background:var(--good);}
+  .status-pill.err{color:var(--danger);}
+  .status-pill.err .dot{background:var(--danger);}
+
+  header{margin-bottom:20px;}
   .eyebrow{
     font-size:11.5px; letter-spacing:.14em; font-weight:600; color:var(--accent);
     text-transform:uppercase; margin:0 0 8px;
   }
   h1{
-    font-family:"Noto Serif KR", serif; font-weight:700;
-    font-size:clamp(26px,4vw,34px); margin:0 0 10px;
+    font-weight:700; letter-spacing:-.01em;
+    font-size:clamp(24px,3.4vw,30px); margin:0 0 10px; color:var(--text);
   }
   .sub{color:var(--text-muted); font-size:14.5px; margin:0; max-width:62ch;}
 
-  .tabbar{
-    display:flex; gap:6px; background:var(--surface-2); border:1px solid var(--border);
-    border-radius:12px; padding:5px; width:fit-content; max-width:100%; flex-wrap:wrap;
+  .panel-body{display:flex; flex-direction:column; gap:18px;}
+
+  @media (max-width:860px){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%; flex:none; min-height:0; position:static; border-right:none; border-bottom:1px solid var(--border);}
+    .side-nav{flex-direction:row; flex-wrap:wrap;}
+    .side-nav .tab{width:auto;}
+    .sidebar-foot{margin-top:6px;}
+    .main{padding:22px 16px 48px;}
   }
-  .tab{
-    appearance:none; border:none; background:transparent; color:var(--text-muted);
-    font-family:inherit; font-size:14px; font-weight:600; padding:9px 18px;
-    border-radius:8px; cursor:pointer; white-space:nowrap;
-  }
-  .tab.active{background:var(--accent); color:var(--accent-ink);}
-  .tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 
   .panel{display:none; flex-direction:column; gap:18px;}
   .panel.active{display:flex;}
@@ -84,6 +149,7 @@
     display:grid; grid-template-columns:repeat(auto-fill, minmax(190px,1fr)); gap:14px;
   }
   .field{display:flex; flex-direction:column; gap:6px; min-width:0;}
+  [hidden]{display:none !important;}
   .field label{font-size:12.5px; font-weight:600; color:var(--text-muted);}
   select, textarea, input[type=text], input[type=file]{
     font-family:inherit; font-size:14px; color:var(--text); background:var(--bg);
@@ -94,6 +160,52 @@
   }
   textarea{resize:vertical; min-height:64px; font-family:inherit;}
   .hint{font-size:12px; color:var(--text-muted); margin-top:2px;}
+
+  /* ---------- workflow map ---------- */
+  .wf-lane-tag{
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+    letter-spacing:.02em; padding:6px 12px; border-radius:999px; margin:18px 0 10px;
+  }
+  .wf-lane-tag:first-child{margin-top:0;}
+  .wf-lane-tag.web{background:var(--accent-soft); color:var(--accent);}
+  .wf-lane-tag.local{background:var(--surface-2); color:var(--accent-2); border:1px solid var(--border);}
+
+  .wf-row{display:flex; flex-wrap:wrap; align-items:center; gap:4px 2px;}
+  .wf-sep{color:var(--text-muted); font-size:15px; flex:none; padding:0 3px; align-self:center;}
+
+  .wf-stage{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:11px 13px; box-shadow:var(--shadow);
+    flex:1 1 190px; max-width:230px; min-width:170px;
+  }
+  .wf-stage.wide{flex-basis:100%; max-width:none;}
+  .wf-stage-head{display:flex; align-items:flex-start; gap:8px;}
+  .wf-num{
+    width:19px; height:19px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex:none;
+    margin-top:1px;
+  }
+  .wf-stage-title{font-weight:700; font-size:13px; margin:0 0 2px; line-height:1.3;}
+  .wf-stage-title .note{font-weight:400; color:var(--text-muted); font-size:11px;}
+  .wf-stage-desc{font-size:11px; color:var(--text-muted); margin:0; line-height:1.45;}
+
+  .wf-substeps{display:flex; flex-wrap:wrap; gap:6px; margin-top:9px;}
+  .wf-node{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px;
+    padding:7px 10px; font-size:11.5px; font-weight:600; display:flex; align-items:center;
+    gap:6px; flex:1 1 180px;
+  }
+  .wf-node .em{font-size:13px; flex:none;}
+
+  .wf-merge{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:11px; color:var(--text-muted); margin:2px 0;
+  }
+
+  .wf-loop{
+    margin-top:14px; padding:12px 15px; border:1px dashed var(--accent-2); border-radius:12px;
+    font-size:12px; color:var(--accent-2); text-align:center; line-height:1.6;
+  }
 
   .actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
   button.btn{
@@ -143,6 +255,42 @@
   }
   .badge.accent{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
   .badge.after{background:var(--accent-2); color:var(--accent-2-ink); border-color:var(--accent-2);}
+  .badge.done{background:rgba(22,163,74,.12); color:var(--good); border-color:var(--good);}
+  .badge.fail{background:rgba(179,38,30,.12); color:var(--danger); border-color:var(--danger);}
+  .badge.running{background:rgba(37,99,235,.12); color:#2563eb; border-color:#2563eb;}
+
+  .keyword-bank{margin-top:8px;}
+  .keyword-bank .kb-head{display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap;}
+  .keyword-bank .kb-head .hint{margin:0;}
+  .kb-textlink{font-size:12px; color:var(--accent); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; white-space:nowrap;}
+  .kb-textlink.muted{color:var(--text-muted);}
+  .kb-add-row{display:flex; gap:8px; align-items:flex-start; margin-bottom:10px;}
+  .kb-add-row textarea{flex:1;}
+  .kb-progress{font-size:12px; color:var(--text-muted); margin:0 0 6px;}
+  .kb-chip-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .kb-chip{
+    display:inline-flex; align-items:center; gap:6px; max-width:100%;
+    font-size:12px; padding:5px 10px; border-radius:999px;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    cursor:pointer; transition:background .15s ease, border-color .15s ease;
+  }
+  .kb-chip:hover{background:var(--surface); border-color:var(--accent);}
+  .kb-chip input[type="checkbox"]{width:auto; margin:0;}
+  .kb-chip.kb-done{opacity:.6;}
+  .kb-chip.kb-done .kb-chip-label{text-decoration:line-through;}
+  .kb-chip-dot{width:7px; height:7px; border-radius:999px; background:var(--text-muted); flex:none;}
+  .kb-chip.kb-done .kb-chip-dot{background:var(--good);}
+  .kb-chip-x{color:var(--text-muted); font-weight:700; line-height:1;}
+  .kb-chip-x:hover{color:var(--danger);}
+  .kb-empty{font-size:12px; color:var(--text-muted);}
+  .kb-actions{display:flex; align-items:center; gap:14px; margin-top:10px;}
+
+  .worklog-row{padding:12px 0; border-bottom:1px solid var(--border);}
+  .worklog-row:last-child{border-bottom:none;}
+  .worklog-row .row-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .worklog-row .row-title{font-weight:700; font-size:14px;}
+  .worklog-row .row-detail{margin:4px 0 0; font-size:13px; color:var(--text-muted);}
+  .worklog-row .row-time{margin:2px 0 0; font-size:11px; color:var(--text-muted); font-family:ui-monospace, SFMono-Regular, Menlo, monospace;}
 
   .thumb-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
   .thumb-row img{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border);}
@@ -152,6 +300,23 @@
   }
   .img-result img{max-width:100%; border-radius:10px; border:1px solid var(--border);}
 
+  .im-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; margin-top:10px;}
+  .im-card{border:1px solid var(--border); border-radius:10px; padding:8px; background:var(--surface-2); display:flex; flex-direction:column; gap:6px;}
+  .im-card img{width:100%; height:110px; object-fit:cover; border-radius:6px; border:1px solid var(--border); background:var(--surface);}
+  .im-card select{width:100%; font-size:12px; padding:4px 6px;}
+  .im-card .im-remove{align-self:flex-end; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:0;}
+  .im-card .im-remove:hover{color:var(--danger);}
+
+  .im-order-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; margin-top:8px; background:var(--surface);}
+  .im-order-row .im-order-num{width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex:0 0 auto;}
+  .im-order-row img{width:46px; height:46px; object-fit:cover; border-radius:6px; border:1px solid var(--border); flex:0 0 auto;}
+  .im-order-row .im-order-info{flex:1 1 auto; min-width:0;}
+  .im-order-row .im-order-info p{margin:0; font-size:13px;}
+  .im-order-row .im-order-info .im-order-cat{color:var(--text-muted); font-size:12px;}
+  .im-order-row .im-order-btns{display:flex; gap:4px; flex:0 0 auto;}
+  .im-order-row .im-order-btns button{width:26px; height:26px; border-radius:6px; border:1px solid var(--border); background:var(--surface); cursor:pointer;}
+  .im-order-row.im-excluded{opacity:.45;}
+
   @media (max-width:480px){
     .grid{grid-template-columns:1fr 1fr;}
     .card{padding:16px;}
@@ -160,26 +325,205 @@
 </head>
 <body>
 
-<div class="page">
-  <header style="position:relative;">
-    <p class="eyebrow">DID CORPORATION · Content &amp; Image Studio</p>
-    <h1>비주얼 프롬프트 스튜디오</h1>
-    <p class="sub">슬립포어 · 아드코 · 리아르 · 폴린칼츠 — 인물 페르소나 프롬프트, 제품 실사 이미지 생성, 블로그 원고 작성을 한 화면에서 처리합니다.</p>
-    <button id="logout-btn" type="button" style="position:absolute; top:0; right:0; background:none; border:1px solid var(--border); color:var(--text-muted); font-size:12px; padding:6px 12px; border-radius:8px; cursor:pointer;">로그아웃</button>
-  </header>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">D</div>
+      <div class="brand-text">
+        <strong>DID</strong>
+      </div>
+    </div>
 
-  <div id="api-warning" class="tip warn" hidden>
-    이미지·원고 생성 API가 아직 연결되지 않았어요. <code>functions/api/write.js</code>, <code>functions/api/image.js</code>가 배포된 서버(Cloudflare Pages 등)에 접속해야 정상 동작합니다. README.md를 참고해주세요.
-  </div>
+    <nav class="side-nav" role="tablist">
+      <p class="nav-group-label">콘텐츠 워크플로우</p>
+      <button class="tab active" id="tab-postmanage" data-tab="postmanage" data-label="글 관리" role="tab" aria-selected="true"><span class="nav-icon">📋</span>글 관리</button>
+      <button class="tab" id="tab-workflow" data-tab="workflow" data-label="전체 흐름" role="tab" aria-selected="false"><span class="nav-icon">🧭</span>전체 흐름</button>
+      <button class="tab" id="tab-writer" data-tab="writer" data-label="새 글 준비" role="tab" aria-selected="false"><span class="nav-icon">✍️</span>새 글 준비</button>
+      <button class="tab" id="tab-research" data-tab="research" data-label="검색 리서치" role="tab" aria-selected="false"><span class="nav-icon">🔎</span>검색 리서치</button>
+      <button class="tab" id="tab-worklog" data-tab="worklog" data-label="작업 기록" role="tab" aria-selected="false"><span class="nav-icon">🗂️</span>작업 기록</button>
 
-  <div class="tabbar" role="tablist">
-    <button class="tab active" id="tab-persona" data-tab="persona" role="tab" aria-selected="true">인물 페르소나</button>
-    <button class="tab" id="tab-product" data-tab="product" role="tab" aria-selected="false">제품 실사 이미지</button>
-    <button class="tab" id="tab-writer" data-tab="writer" role="tab" aria-selected="false">원고 작성</button>
-  </div>
+      <p class="nav-group-label">이미지 도구</p>
+      <button class="tab" id="tab-persona" data-tab="persona" data-label="인물 페르소나" role="tab" aria-selected="false"><span class="nav-icon">👤</span>인물 페르소나</button>
+      <button class="tab" id="tab-product" data-tab="product" data-label="제품 실사 이미지" role="tab" aria-selected="false"><span class="nav-icon">🛍️</span>제품 실사 이미지</button>
+      <button class="tab" id="tab-imagemanager" data-tab="imagemanager" data-label="이미지 매니저" role="tab" aria-selected="false"><span class="nav-icon">🖼️</span>이미지 매니저</button>
 
-  <!-- PERSONA PANEL -->
-  <section id="panel-persona" class="panel active">
+      <p class="nav-group-label">발행 자동화</p>
+      <button class="tab" id="tab-accounts" data-tab="accounts" data-label="계정 관리" role="tab" aria-selected="false"><span class="nav-icon">👥</span>계정 관리</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <p class="foot-note">🔒 API 키와 비밀번호는 서버에만 안전하게 보관되고, 이 화면에는 노출되지 않습니다.</p>
+      <button id="logout-btn" type="button" class="btn ghost" style="width:100%;">로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <p class="breadcrumb">워크스페이스 / <span id="crumb-current">글 관리</span></p>
+      <div class="status-pill" id="status-pill"><span class="dot"></span><span id="status-pill-text">연결 확인 중...</span></div>
+    </div>
+
+    <header>
+      <p class="eyebrow">Content &amp; Image Studio</p>
+      <h1>비주얼 프롬프트 스튜디오</h1>
+      <p class="sub">슬립포어 · 아드코 · 리아르 · 폴린칼츠 — 인물 페르소나 프롬프트, 제품 실사 이미지 생성, 블로그 원고 작성을 한 화면에서 처리합니다.</p>
+    </header>
+
+    <div id="api-warning" class="tip warn" hidden>
+      이미지·원고 생성 API가 아직 연결되지 않았어요. <code>functions/api/write.js</code>, <code>functions/api/image.js</code>가 배포된 서버(Cloudflare Pages 등)에 접속해야 정상 동작합니다. README.md를 참고해주세요.
+    </div>
+
+    <!-- POST MANAGEMENT PANEL -->
+    <section id="panel-postmanage" class="panel active">
+      <div class="tip">
+        이 목록은 <b>이 브라우저 세션에서 "새 글 준비"로 생성한 원고</b>를 최신순으로 보여줍니다. 새로고침하면 초기화되며, 아직 별도 서버 저장소는 연결되어 있지 않아요.
+      </div>
+      <div class="card" id="postmanage-empty">
+        <p class="hint" style="margin:0;">아직 생성된 원고가 없습니다. 왼쪽 메뉴에서 <b>"새 글 준비"</b>로 이동해 원고를 만들어보세요.</p>
+      </div>
+      <div id="postmanage-list" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </section>
+
+    <!-- WORKFLOW MAP PANEL -->
+    <section id="panel-workflow" class="panel">
+      <div class="tip">
+        지금까지 만든 기능들이 <b>어떤 순서로 이어지는지</b> 한눈에 보여드려요. 메이크·n8n처럼 실제로 실행되는 자동화 노드는 아니고,
+        "뭘 어떤 순서로 누르면 되는지" 보여주는 지도예요. 🌐 표시는 이 웹페이지(브라우저)에서, 🖥️ 표시는 <b>대표님 컴퓨터</b>에서
+        (<code>naver-publisher</code> 폴더) 하는 단계예요.
+      </div>
+
+      <span class="wf-lane-tag web">🌐 웹앱(브라우저)에서</span>
+
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">1</div>
+            <div>
+              <p class="wf-stage-title">원고 작성</p>
+              <p class="wf-stage-desc">새 글 준비 → 키워드로 생성</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-merge">↓ 원고 길이를 보고 이미지 몇 장이 필요한지 정해요</div>
+
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">2a</div>
+            <div>
+              <p class="wf-stage-title">인물 페르소나</p>
+              <p class="wf-stage-desc">BEFORE → AFTER<br>(자동 합성)</p>
+            </div>
+          </div>
+        </div>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">2b</div>
+            <div>
+              <p class="wf-stage-title">제품 실사 — 자사</p>
+              <p class="wf-stage-desc">브랜드: 리아르 등</p>
+            </div>
+          </div>
+        </div>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">2c</div>
+            <div>
+              <p class="wf-stage-title">제품 실사 — 대조군</p>
+              <p class="wf-stage-desc">브랜드: 경쟁사 비교군</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-merge">↓ 셋 다 자동으로 이미지 매니저에 모여요</div>
+
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">3</div>
+            <div>
+              <p class="wf-stage-title">이미지 매니저 정리</p>
+              <p class="wf-stage-desc">순서 확인 → "이 글 내보내기"(zip)</p>
+            </div>
+          </div>
+        </div>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">4</div>
+            <div>
+              <p class="wf-stage-title">계정 등록 <span class="note">최초 1회</span></p>
+              <p class="wf-stage-desc">계정 관리 → accounts.json</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <span class="wf-lane-tag local">🖥️ 대표님 컴퓨터에서 (naver-publisher 폴더)</span>
+
+      <div class="wf-row">
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">5</div>
+            <div>
+              <p class="wf-stage-title">파일 옮기기</p>
+              <p class="wf-stage-desc">zip→posts/, accounts.json 넣기</p>
+            </div>
+          </div>
+        </div>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">6</div>
+            <div>
+              <p class="wf-stage-title">로그인 <span class="note">계정당 1회</span></p>
+              <p class="wf-stage-desc">2_login.bat → 직접 로그인</p>
+            </div>
+          </div>
+        </div>
+        <span class="wf-sep">→</span>
+        <div class="wf-stage">
+          <div class="wf-stage-head">
+            <div class="wf-num">7</div>
+            <div>
+              <p class="wf-stage-title">발행</p>
+              <p class="wf-stage-desc">3_publish.bat → 1(확인)→2(실제)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wf-loop">
+        🔁 다음 글도 발행하려면 1·2·3단계(원고 → 이미지 → 내보내기)부터 다시 반복하면 돼요.
+        계정 등록(4번)과 로그인(6번)은 그 계정에 대해 딱 한 번만 하면, 그다음부턴 매번 다시 안 해도 돼요.
+      </div>
+    </section>
+
+    <!-- SEARCH RESEARCH PANEL (placeholder) -->
+    <section id="panel-research" class="panel">
+      <div class="card">
+        <p class="out-title" style="margin-bottom:8px;">검색 리서치 — 준비 중인 기능이에요</p>
+        <p class="hint" style="margin:0;">원고 주제와 관련된 최신 자료·경쟁사 콘텐츠·키워드를 자동으로 조사해주는 기능을 이 화면에 추가할 예정입니다. 어떤 방식(네이버 검색, 구글 검색, 특정 키워드 트렌드 등)으로 조사하면 좋을지 알려주시면 이어서 만들어드릴게요.</p>
+      </div>
+    </section>
+
+    <!-- WORK LOG PANEL -->
+    <section id="panel-worklog" class="panel">
+      <div class="card">
+        <p class="out-title" style="margin-bottom:4px;">실행 기록</p>
+        <p class="hint" style="margin:0 0 14px;">이 브라우저 세션에서 실행한 원고·이미지 생성 작업을 최신순으로 보여줍니다. 새로고침하면 초기화됩니다.</p>
+        <div id="worklog-empty">
+          <p class="hint" style="margin:0;">아직 기록된 작업이 없습니다.</p>
+        </div>
+        <div id="worklog-list"></div>
+      </div>
+    </section>
+
+    <!-- PERSONA PANEL -->
+  <section id="panel-persona" class="panel">
     <div class="tip">
       <b>작동 방식(앵커 방식):</b> ① 옵션 선택 → ② 프롬프트 생성 → ③ <b>비포(BEFORE) 프롬프트</b>로 이미지 1장 생성 → ④ 그 이미지를 이미지 생성 도구에 첨부하고 <b>애프터(AFTER) 프롬프트</b>를 붙여넣으면, 같은 얼굴·같은 정체성 그대로 피부만 개선된 이미지가 나옵니다.
     </div>
@@ -316,6 +660,13 @@
       </div>
       <div class="summary-line" id="p-summary-a"></div>
       <pre class="out" id="p-base"></pre>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="p-before-gen">① BEFORE 이미지 생성</button>
+      </div>
+      <div class="card" id="p-before-image-card" hidden style="margin-top:14px; box-shadow:none; border:1px dashed var(--border, #ddd);">
+        <div class="out-head"><p class="out-title">생성된 BEFORE 이미지</p></div>
+        <div class="img-result" id="p-before-image-result"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -327,6 +678,17 @@
         <button class="copy-btn" data-copy="p-followup">복사</button>
       </div>
       <pre class="out" id="p-followup"></pre>
+      <div class="field" style="margin-top:14px;">
+        <label for="p-after-refimg">참조 이미지 <span style="font-weight:400;">(선택 — 비워두면 방금 생성한 BEFORE 이미지를 자동 사용)</span></label>
+        <input type="file" id="p-after-refimg" accept="image/png,image/jpeg,image/webp">
+      </div>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="p-after-gen">② AFTER 이미지 생성</button>
+      </div>
+      <div class="card" id="p-after-image-card" hidden style="margin-top:14px; box-shadow:none; border:1px dashed var(--border, #ddd);">
+        <div class="out-head"><p class="out-title">생성된 AFTER 이미지</p></div>
+        <div class="img-result" id="p-after-image-result"></div>
+      </div>
     </div>
   </section>
 
@@ -414,6 +776,7 @@
         <label for="pr-handheld" style="margin:0;">에디토리얼 핸드헬드 무드 적용 <span style="font-weight:400; color:var(--text-muted);">— 살짝 기울어진 핸드헬드 앵글 + 배경 피사체 얕은 심도 블러</span></label>
       </div>
 
+
       <div class="field" style="margin-top:14px;">
         <label for="pr-extra">추가 디테일 (선택)</label>
         <textarea id="pr-extra" placeholder="예: 로고는 골드 컬러로 강조, 옆에 유칼립투스 잎 소품 추가"></textarea>
@@ -454,6 +817,129 @@
     </div>
   </section>
 
+  <!-- IMAGE MANAGER PANEL -->
+  <section id="panel-imagemanager" class="panel">
+    <div class="tip">
+      <b>자동으로 되는 부분:</b> 인물 페르소나 탭에서 BEFORE·AFTER 이미지를 순서대로 생성하면, 두 이미지를 자동으로 합성하고 발행 순서에도 자동으로 넣어줘요(클릭 필요 없음). 제품 실사 이미지도 생성하면 바로 보관함에 담겨요. 원본 비포/애프터는 참고용으로 보관함에는 남지만 발행 순서에서는 기본적으로 빠집니다.<br>
+      <b>필요할 때만 손으로:</b> 순서를 바꾸거나 빼고 싶은 이미지가 있으면 아래 "발행 순서" 목록에서 체크·화살표로 조정하고, 완성되면 "번호 매겨 ZIP 다운로드"만 누르면 돼요. 실제 네이버 발행 자동화(크롤링)는 이 ZIP/매니페스트를 읽어서 그 순서대로 첨부하는 별도 스크립트에서 처리합니다.
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">이미지 보관함 <span id="im-pool-count">— 0장</span></p>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label for="im-upload">이미지 직접 추가 <span style="font-weight:400;">(자동 생성 흐름을 안 쓰고 파일을 바로 올릴 때만)</span></label>
+        <input type="file" id="im-upload" accept="image/png,image/jpeg,image/webp" multiple>
+      </div>
+      <div id="im-pool-empty" class="hint">아직 담긴 이미지가 없어요. 인물 페르소나·제품 실사 탭에서 이미지를 생성하면 자동으로 여기 쌓여요.</div>
+      <div id="im-pool-grid" class="im-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">비포/애프터 수동 합성 <span style="font-weight:400; font-size:12px;">— 직접 업로드한 이미지용 (자동 생성 흐름에서는 필요 없음)</span></p>
+      </div>
+      <p class="hint" style="margin-top:0;">인물 페르소나 탭에서 만든 BEFORE/AFTER는 자동으로 합성돼요. 이건 직접 업로드한 비포/애프터 이미지를 합칠 때만 쓰면 됩니다.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="im-before-select">비포(BEFORE) 이미지</label>
+          <select id="im-before-select"></select>
+        </div>
+        <div class="field">
+          <label for="im-after-select">애프터(AFTER) 이미지</label>
+          <select id="im-after-select"></select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="im-composite-btn">합성하기</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">발행 순서 · 번호 매기기</p>
+      </div>
+      <p class="hint" style="margin-top:0;">이 글에 실제로 쓸 이미지만 체크하고, 화살표로 순서를 정하면 번호가 자동으로 매겨져요. 이 번호 순서대로 크롤링(자동 발행) 쪽에서 이미지를 첨부하면 됩니다.</p>
+      <div id="im-order-empty" class="hint">보관함에서 이미지를 담으면 여기에 순서 목록이 생겨요.</div>
+      <div id="im-order-list"></div>
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="im-export-btn">번호 매겨 ZIP + 매니페스트 다운로드</button>
+        <button class="btn ghost" id="im-clear-btn">보관함 비우기</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">이 글 내보내기 <span style="font-weight:400; font-size:12px;">— naver-publisher 스크립트용</span></p>
+      </div>
+      <p class="hint" style="margin-top:0;">"새 글 준비" 탭에서 가장 최근에 생성한 원고 + 위 발행 순서에 포함된 이미지를 <code>post.txt</code> + <code>images/</code> 구조로 묶은 ZIP 하나로 내려받아요. 압축을 풀어서 <code>naver-publisher/posts/</code> 아래에 그대로 넣으면 바로 <code>publish.js</code>·<code>publish-rotate.js</code>에서 쓸 수 있어요.</p>
+      <div id="im-lastpost-info" class="hint" style="margin-top:0;">아직 이번 세션에서 생성한 원고가 없어요. 새 글 준비 탭에서 원고를 먼저 생성해주세요.</div>
+      <div class="actions">
+        <button class="btn primary" id="im-export-post-btn">이 글 내보내기 (원고+이미지 ZIP)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS PANEL -->
+  <section id="panel-accounts" class="panel">
+    <div class="tip">
+      여기서는 <b>계정 목록·하루 발행 한도만</b> 관리해요. 실제 네이버 로그인은 이 화면(브라우저 웹페이지)에서는 절대 하지 않습니다 — 비밀번호를 다루는 코드를 만들지 않기로 했었죠.
+      대신 대표님 컴퓨터에서 <code>naver-publisher/login.js</code>를 계정마다 딱 한 번 실행해서 직접 로그인하면 그 로그인 세션만 저장되고, 이후 발행은 그 세션을 재사용해요.
+      아래 목록은 "어떤 계정이 있고, 계정마다 하루에 몇 건까지 발행할지"를 정리해서 <code>accounts.json</code>으로 내보내는 용도예요 — 내보낸 파일을 <code>naver-publisher</code> 폴더에 그대로 덮어쓰면 됩니다.
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">계정 추가</p>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="acct-label">라벨 (별명)</label>
+          <input type="text" id="acct-label" placeholder="예: 민지">
+        </div>
+        <div class="field">
+          <label for="acct-blogid">블로그 ID</label>
+          <input type="text" id="acct-blogid" placeholder="blog.naver.com/여기">
+        </div>
+        <div class="field">
+          <label for="acct-limit">하루 발행 한도</label>
+          <input type="number" id="acct-limit" value="10" min="1">
+        </div>
+        <div class="field">
+          <label for="acct-note">메모 <span style="font-weight:400;">(선택)</span></label>
+          <input type="text" id="acct-note" placeholder="예: 부계정 · 기미크림 라인">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="acct-add-btn">계정 추가</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="out-head">
+        <p class="out-title">등록된 계정 <span id="acct-count">— 0개</span></p>
+        <button class="btn ghost" id="acct-export-btn">accounts.json 다운로드</button>
+      </div>
+      <div id="acct-empty" class="hint">아직 등록된 계정이 없어요.</div>
+      <div id="acct-table-wrap" style="overflow-x:auto;">
+        <table id="acct-table" style="width:100%; border-collapse:collapse; font-size:13px;" hidden>
+          <thead>
+            <tr style="text-align:left; border-bottom:1px solid var(--border);">
+              <th style="padding:8px 6px;">라벨</th>
+              <th style="padding:8px 6px;">블로그 ID</th>
+              <th style="padding:8px 6px;">하루 한도</th>
+              <th style="padding:8px 6px;">메모</th>
+              <th style="padding:8px 6px;">로그인 세션</th>
+              <th style="padding:8px 6px;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="acct-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- WRITER PANEL -->
   <section id="panel-writer" class="panel">
     <div class="tip">
@@ -461,66 +947,202 @@
     </div>
 
     <div class="card">
-      <div class="grid">
-        <div class="field" style="grid-column:1/-1;">
-          <label for="w-topic">주제 / 제품 / 핵심 소재</label>
-          <textarea id="w-topic" placeholder="예: 리아르 루미넥신 앰플 — 트라넥삼산·나이아신아마이드 함유 브라이트닝 세럼, 기미 개선 체험 후기 형태로"></textarea>
-        </div>
-        <div class="field">
-          <label for="w-persona">필자 페르소나</label>
-          <select id="w-persona">
-            <option value="30대 직장인 여성, 화장품 성분을 꼼꼼히 따지는 편, 친구한테 말하듯 편하게 쓰는 스타일" selected>30대 직장인 여성 (성분 덕후)</option>
-            <option value="20대 후반 여성, 감성적이고 솔직한 뷰티 블로거, 데일리 브이로그 느낌으로 쓰는 스타일">20대 후반 뷰티 블로거</option>
-            <option value="40대 기혼 여성, 아이 키우며 자기 관리하는 워킹맘, 담백하고 현실적인 말투">40대 워킹맘</option>
-            <option value="약사·피부과 정보에 관심 많은 예민성 피부 고민러, 성분표를 항상 확인하는 꼼꼼한 성격">예민성 피부 고민러</option>
-            <option value="custom">직접 입력</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="w-tone">말투</label>
-          <select id="w-tone">
-            <option value="친근한 반말 섞인 구어체, 이모티콘 없이" selected>친근한 반말체</option>
-            <option value="조곤조곤한 존댓말, 차분하고 정중한 톤">조곤조곤 존댓말</option>
-            <option value="솔직하고 직설적인 톤, 장단점을 분명히 말하는 스타일">솔직·직설 톤</option>
-            <option value="차분하고 정보 전달에 집중하는 담백한 톤">담백한 정보 전달톤</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="w-quote">인용구 활용</label>
-          <select id="w-quote">
-            <option value="yes" selected>사용 (전문가 코멘트·후기 인용구 1~2개 자연스럽게 삽입)</option>
-            <option value="no">사용 안 함</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="w-minlen">글자수 최소</label>
-          <input type="text" id="w-minlen" value="1500">
-        </div>
-        <div class="field">
-          <label for="w-maxlen">글자수 최대</label>
-          <input type="text" id="w-maxlen" value="1900">
-        </div>
-      </div>
-
-      <div class="field" style="margin-top:14px;" id="w-custom-persona-wrap" hidden>
-        <label for="w-custom-persona">페르소나 직접 입력</label>
-        <textarea id="w-custom-persona" placeholder="예: 30대 초반 여성, 예민성 피부, 화장품 성분표를 꼭 확인하는 성격, 신뢰가는 담백한 말투"></textarea>
+      <div class="field">
+        <label for="writer-project">프로젝트</label>
+        <select id="writer-project">
+          <option value="general" selected>일반 원고 (자유 주제)</option>
+          <option value="riar">리아르 · 루미넥신 앰플 (바이럴 후기)</option>
+        </select>
       </div>
     </div>
 
-    <div class="actions">
-      <button class="btn primary" id="w-gen">원고 생성</button>
-      <button class="btn ghost" id="w-copy">복사</button>
+    <!-- ================= 리아르 · 루미넥신 앰플 전용 작가 ================= -->
+    <div id="writer-riar-block" hidden style="display:flex; flex-direction:column; gap:18px;">
+      <div class="tip">
+        <b>루미넥신 앰플 마스터 프롬프트</b> 기반 전용 작가입니다. 브랜드명("리아르") 미노출, 성분·효능 과장 금지, 대조군 비방 금지 등 규칙을 자동으로 지키고, 구매링크·광고 표시 문구는 생성 후 자동으로 붙습니다.
+      </div>
+
+      <div class="card">
+        <div class="grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="riar-keywords">키워드 / 주제 <span style="font-weight:400;">(한 줄에 한 건씩 — 1건만 써도 되고, 여러 줄 붙여넣으면 그 줄 수만큼 순서대로 전부 생성돼요)</span></label>
+            <textarea id="riar-keywords" rows="6" placeholder="한 줄에 한 건씩 적어주세요. '키워드 | 검색의도' 형식이고 검색의도는 생략 가능해요.
+연관 키워드는 안 적어도 돼요 — 원고 생성할 때 네이버 자동완성에서 자동으로 조회해서 반영해요.
+(직접 넣고 싶으면 '키워드 | 검색의도 | 연관키워드1,연관키워드2'처럼 뒤에 추가해도 되고, 그럼 그걸 그대로 써요)
+
+예)
+기미 사라지는 크림 | 가격 비교
+색소침착 앰플 추천 | 부작용 걱정 해소
+정체기 극복 후기"></textarea>
+            <div class="keyword-bank" id="riar-keyword-bank">
+              <div class="kb-head">
+                <span class="hint">키워드 뱅크 <span style="font-weight:400;">(써야 할 키워드를 미리 등록해두고 체크해서 한 번에 입력창에 넣으세요 — 생성 완료된 건 자동으로 ✓표시돼요)</span></span>
+                <button type="button" class="kb-textlink" id="riar-keyword-bank-add-toggle">+ 후보 키워드 등록</button>
+              </div>
+              <div class="kb-add-row" id="riar-keyword-bank-add-row" hidden>
+                <textarea id="riar-keyword-bank-add" rows="3" placeholder="한 줄에 하나씩 붙여넣으세요. '키워드 | 검색의도' 형식 (검색의도 생략 가능). 연관 키워드는 생성할 때 자동 조회돼서 안 적어도 돼요."></textarea>
+                <button type="button" class="btn ghost" id="riar-keyword-bank-add-btn">등록</button>
+              </div>
+              <p class="kb-progress" id="riar-keyword-bank-progress" hidden></p>
+              <div class="kb-chip-row" id="riar-keyword-bank-chips"></div>
+              <div class="kb-actions" id="riar-keyword-bank-actions" hidden>
+                <button type="button" class="btn primary" id="riar-keyword-bank-use-btn">체크한 키워드 입력창에 추가</button>
+              </div>
+              <div class="kb-actions" id="riar-keyword-bank-footer" hidden>
+                <button type="button" class="kb-textlink muted" id="riar-keyword-bank-clear-done">완료 항목 정리</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="riar-intent">기본 검색의도 <span style="font-weight:400;">(선택 — 위에서 줄마다 검색의도를 안 적었을 때 공통 적용)</span></label>
+            <input type="text" id="riar-intent" placeholder="예: 가격 비교, 부작용 걱정 해소, 정체기 극복 후기">
+          </div>
+          <div class="field">
+            <label for="riar-trigger">매칭 트리거 템플릿</label>
+            <select id="riar-trigger">
+              <option value="auto" selected>자동 선택 (AI가 키워드·검색의도 보고 판단)</option>
+              <option value="자극발생형">자극발생형 (도미나크림 대조)</option>
+              <option value="정체기형">정체기형 (멜라토닝크림 대조)</option>
+              <option value="병행시너지형">병행시너지형 (홈케어 기초템 병행)</option>
+              <option value="비교탐색형">비교탐색형 (여러 제품 비교)</option>
+              <option value="시술대안형">시술대안형 (레이저 시술 대안)</option>
+              <option value="정보형">정보형 (설명 콘텐츠, 후기 형식 아님)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="riar-persona">페르소나 설명</label>
+            <input type="text" id="riar-persona" value="30대 초반, 미혼 사무직 / 담백 존댓말">
+          </div>
+          <div class="field">
+            <label for="riar-emoji-tone">이모티콘 톤</label>
+            <select id="riar-emoji-tone">
+              <option value="담백형" selected>담백형 (1~2회)</option>
+              <option value="감정형">감정형 (3~5회)</option>
+              <option value="정보전달형">정보전달형 (0~1회)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="riar-minlen">목표 글자수 최소</label>
+            <input type="text" id="riar-minlen" value="1600">
+          </div>
+          <div class="field">
+            <label for="riar-maxlen">목표 글자수 최대</label>
+            <input type="text" id="riar-maxlen" value="1900">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="riar-link">구매링크 (UTM) <span style="font-weight:400;">— 선택, 넣으면 광고 표시 문구 위에 자동으로 붙어요. 매번 새 링크로 바꿔서 붙여넣으세요</span></label>
+            <input type="text" id="riar-link" placeholder="https://smartstore.naver.com/lear_kr/products/...?utm_source=...">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="riar-note">비고 <span style="font-weight:400;">(선택 — 경쟁사명, 성분 매칭 등 특이사항)</span></label>
+            <textarea id="riar-note" placeholder="예: 이번 편은 20대 타겟, 주근깨 위주로"></textarea>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+              <input type="checkbox" id="riar-no-disclosure" style="width:auto;">
+              광고 표시 문구·구매링크 생략 (교육/내부 자료용 — <b>실제로 발행할 원고에는 반드시 체크 해제</b>해주세요)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="riar-gen">원고 생성</button>
+        <button class="btn ghost" id="riar-copy">마지막 결과 복사</button>
+        <span class="hint" id="riar-batch-progress"></span>
+      </div>
+
+      <div id="riar-batch-status"></div>
+
+      <div id="riar-checks"></div>
+
+      <div class="card">
+        <div class="out-head">
+          <p class="out-title">생성된 원고 <span id="riar-charcount"></span></p>
+          <button class="copy-btn" data-copy="riar-out">복사</button>
+        </div>
+        <pre class="out" id="riar-out" style="max-height:520px;">왼쪽 옵션을 고르고 "원고 생성"을 누르면 여기에 바로 원고가 나옵니다. 구매링크·광고 표시 문구는 자동으로 맨 끝에 붙습니다.</pre>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="out-head">
-        <p class="out-title">생성된 원고 <span id="w-charcount"></span></p>
-        <button class="copy-btn" data-copy="w-out">복사</button>
+    <!-- ================= 일반 원고 (자유 주제) ================= -->
+    <div id="writer-general-block" style="display:flex; flex-direction:column; gap:18px;">
+      <div class="card">
+        <div class="grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="w-topic">주제 / 제품 / 핵심 소재</label>
+            <textarea id="w-topic" placeholder="예: 슬립포어 냉감패드 — 여름철 숙면템, 실사용 후기 형태로"></textarea>
+          </div>
+          <div class="field">
+            <label for="w-persona">필자 페르소나</label>
+            <select id="w-persona">
+              <option value="30대 직장인 여성, 화장품 성분을 꼼꼼히 따지는 편, 친구한테 말하듯 편하게 쓰는 스타일" selected>30대 직장인 여성 (성분 덕후)</option>
+              <option value="20대 후반 여성, 감성적이고 솔직한 뷰티 블로거, 데일리 브이로그 느낌으로 쓰는 스타일">20대 후반 뷰티 블로거</option>
+              <option value="40대 기혼 여성, 아이 키우며 자기 관리하는 워킹맘, 담백하고 현실적인 말투">40대 워킹맘</option>
+              <option value="약사·피부과 정보에 관심 많은 예민성 피부 고민러, 성분표를 항상 확인하는 꼼꼼한 성격">예민성 피부 고민러</option>
+              <option value="custom">직접 입력</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-tone">말투</label>
+            <select id="w-tone">
+              <option value="친근한 반말 섞인 구어체, 이모티콘 없이" selected>친근한 반말체</option>
+              <option value="조곤조곤한 존댓말, 차분하고 정중한 톤">조곤조곤 존댓말</option>
+              <option value="솔직하고 직설적인 톤, 장단점을 분명히 말하는 스타일">솔직·직설 톤</option>
+              <option value="차분하고 정보 전달에 집중하는 담백한 톤">담백한 정보 전달톤</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-quote">인용구 활용</label>
+            <select id="w-quote">
+              <option value="yes" selected>사용 (전문가 코멘트·후기 인용구 1~2개 자연스럽게 삽입)</option>
+              <option value="no">사용 안 함</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="w-purpose">글의 목적</label>
+            <input type="text" id="w-purpose" value="검색 의도 충족 및 SEO 최적화" placeholder="예: 검색 의도 충족 및 SEO/GEO">
+          </div>
+          <div class="field">
+            <label for="w-image-comp">이미지 구성</label>
+            <select id="w-image-comp">
+              <option value="auto11" selected>자동 구성 (11장 이상)</option>
+              <option value="mid">적당히 (5~7장)</option>
+              <option value="few">최소화 (2~3장)</option>
+              <option value="none">이미지 없음 (텍스트만)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="w-minlen">글자수 최소</label>
+            <input type="text" id="w-minlen" value="1500">
+          </div>
+          <div class="field">
+            <label for="w-maxlen">글자수 최대</label>
+            <input type="text" id="w-maxlen" value="1900">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:14px;" id="w-custom-persona-wrap" hidden>
+          <label for="w-custom-persona">페르소나 직접 입력</label>
+          <textarea id="w-custom-persona" placeholder="예: 30대 초반 여성, 예민성 피부, 화장품 성분표를 꼭 확인하는 성격, 신뢰가는 담백한 말투"></textarea>
+        </div>
       </div>
-      <pre class="out" id="w-out" style="max-height:520px;">왼쪽 옵션을 고르고 "원고 생성"을 누르면 여기에 바로 원고가 나옵니다.</pre>
+
+      <div class="actions">
+        <button class="btn primary" id="w-gen">원고 생성</button>
+        <button class="btn ghost" id="w-copy">복사</button>
+      </div>
+
+      <div class="card">
+        <div class="out-head">
+          <p class="out-title">생성된 원고 <span id="w-charcount"></span></p>
+          <button class="copy-btn" data-copy="w-out">복사</button>
+        </div>
+        <pre class="out" id="w-out" style="max-height:520px;">왼쪽 옵션을 고르고 "원고 생성"을 누르면 여기에 바로 원고가 나옵니다.</pre>
+      </div>
     </div>
   </section>
+  </main>
 </div>
 
 <div class="toast" id="toast">복사되었습니다</div>
@@ -531,14 +1153,107 @@
 
   function $(id){ return document.getElementById(id); }
 
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ---------- 글 관리 / 작업 기록 (이 브라우저 세션 동안만 유지되는 간단한 기록) ----------
+  var postmanageList = $("postmanage-list");
+  var postmanageEmpty = $("postmanage-empty");
+  var worklogList = $("worklog-list");
+  var worklogEmpty = $("worklog-empty");
+
+  function workStatusMeta(status){
+    if(status === "running") return { cls: "running", label: "실행 중" };
+    if(status === "fail") return { cls: "fail", label: "실패" };
+    return { cls: "done", label: "완료" };
+  }
+
+  function nowTimeStr(){
+    return new Date().toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  }
+
+  // status: "running" | "done" (기본값) | "fail". 반환된 row는 updateWorkStatus로 나중에 갱신할 수 있다
+  // (예: 생성 시작 시 "running"으로 기록해두고, 끝나면 같은 행을 "done"/"fail"로 업데이트).
+  function logWork(label, detail, status){
+    if(!worklogList) return null;
+    worklogEmpty.hidden = true;
+    var meta = workStatusMeta(status);
+    var row = document.createElement("div");
+    row.className = "worklog-row";
+    row.innerHTML =
+      "<div class='row-head'>" +
+        "<span class='row-title'>" + escapeHtml(label) + "</span>" +
+        "<span class='badge " + meta.cls + "'>" + meta.label + "</span>" +
+      "</div>" +
+      (detail ? "<p class='row-detail'>" + escapeHtml(detail) + "</p>" : "") +
+      "<p class='row-time'>" + nowTimeStr() + "</p>";
+    worklogList.prepend(row);
+    return row;
+  }
+
+  function updateWorkStatus(row, status, detail){
+    if(!row) return;
+    var meta = workStatusMeta(status);
+    var badge = row.querySelector(".badge");
+    if(badge){ badge.className = "badge " + meta.cls; badge.textContent = meta.label; }
+    var timeEl = row.querySelector(".row-time");
+    var detailEl = row.querySelector(".row-detail");
+    if(detail){
+      if(detailEl){
+        detailEl.textContent = detail;
+      } else {
+        var p = document.createElement("p");
+        p.className = "row-detail";
+        p.textContent = detail;
+        row.insertBefore(p, timeEl);
+      }
+    } else if(detailEl){
+      detailEl.remove();
+    }
+    if(timeEl) timeEl.textContent = nowTimeStr();
+  }
+
+  function addPostToManage(topic, text){
+    if(!postmanageList) return;
+    postmanageEmpty.hidden = true;
+    var card = document.createElement("div");
+    card.className = "card";
+    var time = new Date().toLocaleString("ko-KR");
+    var preview = text.length > 120 ? text.slice(0,120) + "…" : text;
+    var safeTopic = topic || "(제목 없음)";
+    card.innerHTML =
+      "<div class='out-head'><p class='out-title'>" + escapeHtml(safeTopic) + " <span>— " + text.length + "자 · " + time + "</span></p></div>" +
+      "<p class='hint' style='margin:0 0 10px;'>" + escapeHtml(preview) + "</p>";
+    var toggleBtn = document.createElement("button");
+    toggleBtn.className = "btn ghost";
+    toggleBtn.textContent = "전체 보기";
+    var full = document.createElement("pre");
+    full.className = "out";
+    full.style.marginTop = "10px";
+    full.textContent = text;
+    full.hidden = true;
+    toggleBtn.addEventListener("click", function(){
+      full.hidden = !full.hidden;
+      toggleBtn.textContent = full.hidden ? "전체 보기" : "접기";
+    });
+    card.appendChild(toggleBtn);
+    card.appendChild(full);
+    postmanageList.prepend(card);
+  }
+
   // ---------- tabs ----------
   var tabs = document.querySelectorAll(".tab");
+  var crumbEl = $("crumb-current");
   tabs.forEach(function(t){
     t.addEventListener("click", function(){
       tabs.forEach(function(o){ o.classList.remove("active"); o.setAttribute("aria-selected","false"); });
       t.classList.add("active"); t.setAttribute("aria-selected","true");
       document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
       $("panel-" + t.dataset.tab).classList.add("active");
+      if(crumbEl) crumbEl.textContent = t.dataset.label || t.textContent;
     });
   });
 
@@ -1018,12 +1733,15 @@
     var prompt = buildProductPromptFinal();
     var size = $("pr-ratio").value;
     var files = $("pr-refimg").files;
+    var productLabel = ($("pr-product") && $("pr-product").selectedOptions[0]) ? $("pr-product").selectedOptions[0].textContent : "";
+    var isCompetitorGen = $("pr-brand").value === "competitor";
 
     imgGenBtn.disabled = true;
     var originalLabel = imgGenBtn.textContent;
     imgGenBtn.textContent = "생성 중... (최대 1분)";
     imgCard.hidden = false;
     imgResult.innerHTML = "<p class='hint'>이미지를 생성하고 있어요...</p>";
+    var workRow = logWork("제품 실사 이미지 생성", productLabel, "running");
 
     try{
       var form = new FormData();
@@ -1036,6 +1754,7 @@
 
       if(!res.ok || data.error){
         imgResult.innerHTML = "<p class='hint' style='color:var(--danger);'>생성 실패: " + (data.message || data.error || res.statusText) + "</p>";
+        updateWorkStatus(workRow, "fail", data.message || data.error || res.statusText);
         return;
       }
 
@@ -1050,14 +1769,589 @@
       dl.className = "btn";
       dl.textContent = "이미지 다운로드";
       imgResult.appendChild(dl);
-      showToast("이미지 생성 완료");
+      if(window.addToImagePool){
+        var poolLabel = productLabel || (isCompetitorGen ? "대조군(타사) 제품" : "제품 이미지");
+        window.addToImagePool(poolLabel, isCompetitorGen ? "competitor" : "product", src, true, true);
+      }
+      showToast("이미지 생성 완료 · 이미지 매니저에 자동으로 담겼어요" + (isCompetitorGen ? " (대조군으로 분류)" : ""));
+      updateWorkStatus(workRow, "done", productLabel);
     }catch(e){
       imgResult.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
+      updateWorkStatus(workRow, "fail", "네트워크 오류: " + String(e.message || e));
     }finally{
       imgGenBtn.disabled = false;
       imgGenBtn.textContent = originalLabel;
     }
   });
+
+  // ---- persona (인물 페르소나) real image generation via /api/image ----
+  (function(){
+    var beforeBtn = $("p-before-gen");
+    var beforeCard = $("p-before-image-card");
+    var beforeResult = $("p-before-image-result");
+    var afterBtn = $("p-after-gen");
+    var afterCard = $("p-after-image-card");
+    var afterResult = $("p-after-image-result");
+    var afterRefInput = $("p-after-refimg");
+    var lastBeforeImageFile = null; // holds the generated BEFORE image so AFTER can reuse it as a reference
+    var lastBeforeImageDataUrl = null; // holds the generated BEFORE image data URL so AFTER can auto-composite with it
+
+    function ratioToSize(ratio){
+      if(ratio === "1:1") return "1024x1024";
+      if(ratio === "16:9") return "1536x1024";
+      return "1024x1536"; // 9:16, 4:5 and any other portrait-ish ratio
+    }
+
+    function base64ToFile(b64, filename){
+      var byteChars = atob(b64);
+      var byteNumbers = new Array(byteChars.length);
+      for(var i = 0; i < byteChars.length; i++){ byteNumbers[i] = byteChars.charCodeAt(i); }
+      var byteArray = new Uint8Array(byteNumbers);
+      return new File([byteArray], filename, { type: "image/png" });
+    }
+
+    async function generateImage(prompt, refFiles, resultEl, btnEl, poolMeta){
+      var originalLabel = btnEl.textContent;
+      btnEl.disabled = true;
+      btnEl.textContent = "생성 중... (최대 1분)";
+      resultEl.innerHTML = "<p class='hint'>이미지를 생성하고 있어요...</p>";
+
+      try{
+        var form = new FormData();
+        form.append("prompt", prompt);
+        form.append("size", ratioToSize($("p-ratio").value));
+        (refFiles || []).forEach(function(f){ form.append("image", f, f.name || "reference.png"); });
+
+        var res = await fetch("/api/image", { method: "POST", body: form });
+        var data = await res.json();
+
+        if(!res.ok || data.error){
+          resultEl.innerHTML = "<p class='hint' style='color:var(--danger);'>생성 실패: " + (data.message || data.error || res.statusText) + "</p>";
+          return null;
+        }
+
+        var src = "data:image/png;base64," + data.image_base64;
+        resultEl.innerHTML = "";
+        var img = document.createElement("img");
+        img.src = src;
+        resultEl.appendChild(img);
+        var dl = document.createElement("a");
+        dl.href = src;
+        dl.download = "persona_image.png";
+        dl.className = "btn";
+        dl.textContent = "이미지 다운로드";
+        resultEl.appendChild(dl);
+        if(poolMeta && window.addToImagePool){
+          window.addToImagePool(poolMeta.label, poolMeta.category, src, poolMeta.included, true);
+        }
+        showToast("이미지 생성 완료");
+        return data.image_base64;
+      }catch(e){
+        resultEl.innerHTML = "<p class='hint' style='color:var(--danger);'>네트워크 오류: " + String(e.message || e) + "</p>";
+        return null;
+      }finally{
+        btnEl.disabled = false;
+        btnEl.textContent = originalLabel;
+      }
+    }
+
+    beforeBtn.addEventListener("click", async function(){
+      beforeCard.hidden = false;
+      var prompt = $("p-base").textContent;
+      var workRow = logWork("인물 BEFORE 이미지 생성", "", "running");
+      var b64 = await generateImage(prompt, [], beforeResult, beforeBtn, { label: "인물 BEFORE (원본)", category: "before", included: false });
+      lastBeforeImageFile = b64 ? base64ToFile(b64, "persona_before.png") : null;
+      lastBeforeImageDataUrl = b64 ? ("data:image/png;base64," + b64) : null;
+      updateWorkStatus(workRow, b64 ? "done" : "fail", b64 ? "" : "이미지 생성에 실패했어요");
+    });
+
+    afterBtn.addEventListener("click", async function(){
+      var prompt = $("p-followup").textContent;
+      var refFiles = [];
+      if(afterRefInput.files && afterRefInput.files.length > 0){
+        refFiles = Array.prototype.slice.call(afterRefInput.files);
+      }else if(lastBeforeImageFile){
+        refFiles = [lastBeforeImageFile];
+      }else{
+        showToast("먼저 ① BEFORE 이미지를 생성하거나, 참조 이미지를 업로드해주세요");
+        return;
+      }
+      afterCard.hidden = false;
+      var workRow = logWork("인물 AFTER 이미지 생성", "", "running");
+      var b64 = await generateImage(prompt, refFiles, afterResult, afterBtn, { label: "인물 AFTER (원본)", category: "after", included: false });
+      if(b64 && lastBeforeImageDataUrl && window.compositeBeforeAfterImages && window.addToImagePool){
+        try{
+          var afterDataUrl = "data:image/png;base64," + b64;
+          var compositeUrl = await window.compositeBeforeAfterImages(lastBeforeImageDataUrl, afterDataUrl);
+          window.addToImagePool("비포/애프터 합성 (자동)", "composite", compositeUrl, true, true);
+          showToast("BEFORE/AFTER 합성 완료 · 발행 순서에 자동으로 담겼어요");
+        }catch(e){
+          showToast("합성 자동화에 실패했어요 — 이미지 매니저 탭에서 수동으로 합성해주세요");
+        }
+      }
+      updateWorkStatus(workRow, b64 ? "done" : "fail", b64 ? "" : "이미지 생성에 실패했어요");
+    });
+
+    // a new/changed persona invalidates the previously generated BEFORE image
+    ["p-new", "p-same"].forEach(function(id){
+      $(id).addEventListener("click", function(){
+        lastBeforeImageFile = null;
+        lastBeforeImageDataUrl = null;
+        beforeCard.hidden = true;
+        afterCard.hidden = true;
+      });
+    });
+  })();
+
+  // ================= IMAGE MANAGER (보관함 · 비포/애프터 합성 · 발행 순서) =================
+  (function(){
+    var CATEGORY_LABEL = {
+      product: "제품(자사)",
+      competitor: "대조군(타사) 제품",
+      before: "인물 BEFORE",
+      after: "인물 AFTER",
+      composite: "비포/애프터 합성",
+      etc: "기타"
+    };
+
+    var pool = []; // { id, label, category, dataUrl, included, order }
+    var nextId = 1;
+
+    var poolGrid = $("im-pool-grid");
+    var poolEmpty = $("im-pool-empty");
+    var poolCount = $("im-pool-count");
+    var orderList = $("im-order-list");
+    var orderEmpty = $("im-order-empty");
+    var beforeSelect = $("im-before-select");
+    var afterSelect = $("im-after-select");
+
+    function addToImagePool(label, category, dataUrl, included, silent){
+      var item = {
+        id: nextId++,
+        label: label || "이미지",
+        category: CATEGORY_LABEL[category] ? category : "etc",
+        dataUrl: dataUrl,
+        included: included !== false
+      };
+      pool.push(item);
+      renderPool();
+      if(!silent) showToast("이미지 매니저에 담았어요");
+      return item;
+    }
+    window.addToImagePool = addToImagePool;
+    window.compositeBeforeAfterImages = compositeBeforeAfter;
+
+    function removeFromPool(id){
+      pool = pool.filter(function(it){ return it.id !== id; });
+      renderPool();
+    }
+
+    function renderPool(){
+      poolCount.textContent = "— " + pool.length + "장";
+      poolEmpty.hidden = pool.length > 0;
+      poolGrid.innerHTML = "";
+      pool.forEach(function(it){
+        var card = document.createElement("div");
+        card.className = "im-card";
+        var img = document.createElement("img");
+        img.src = it.dataUrl;
+        card.appendChild(img);
+
+        var sel = document.createElement("select");
+        Object.keys(CATEGORY_LABEL).forEach(function(k){
+          var opt = document.createElement("option");
+          opt.value = k;
+          opt.textContent = CATEGORY_LABEL[k];
+          if(k === it.category) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener("change", function(){ it.category = sel.value; renderOrderList(); });
+        card.appendChild(sel);
+
+        var labelP = document.createElement("p");
+        labelP.className = "hint";
+        labelP.style.margin = "0";
+        labelP.textContent = it.label;
+        card.appendChild(labelP);
+
+        var rmBtn = document.createElement("button");
+        rmBtn.type = "button";
+        rmBtn.className = "im-remove";
+        rmBtn.textContent = "삭제 ✕";
+        rmBtn.addEventListener("click", function(){ removeFromPool(it.id); });
+        card.appendChild(rmBtn);
+
+        poolGrid.appendChild(card);
+      });
+
+      // before/after selects for compositing
+      [beforeSelect, afterSelect].forEach(function(sel){
+        var prevValue = sel.value;
+        sel.innerHTML = "";
+        if(pool.length === 0){
+          var opt0 = document.createElement("option");
+          opt0.textContent = "(보관함에 이미지가 없어요)";
+          opt0.value = "";
+          sel.appendChild(opt0);
+        }
+        pool.forEach(function(it){
+          var opt = document.createElement("option");
+          opt.value = String(it.id);
+          opt.textContent = "#" + it.id + " · " + CATEGORY_LABEL[it.category] + " · " + it.label;
+          sel.appendChild(opt);
+        });
+        if(prevValue) sel.value = prevValue;
+      });
+
+      renderOrderList();
+    }
+
+    function renderOrderList(){
+      orderEmpty.hidden = pool.length > 0;
+      orderList.innerHTML = "";
+      var n = 0;
+      pool.forEach(function(it, idx){
+        var row = document.createElement("div");
+        row.className = "im-order-row" + (it.included ? "" : " im-excluded");
+
+        var num = document.createElement("div");
+        num.className = "im-order-num";
+        if(it.included){ n++; num.textContent = String(n); }
+        else { num.textContent = "–"; }
+        row.appendChild(num);
+
+        var img = document.createElement("img");
+        img.src = it.dataUrl;
+        row.appendChild(img);
+
+        var info = document.createElement("div");
+        info.className = "im-order-info";
+        var p1 = document.createElement("p");
+        p1.textContent = it.label;
+        var p2 = document.createElement("p");
+        p2.className = "im-order-cat";
+        p2.textContent = CATEGORY_LABEL[it.category];
+        info.appendChild(p1);
+        info.appendChild(p2);
+        row.appendChild(info);
+
+        var chkLabel = document.createElement("label");
+        chkLabel.style.display = "flex";
+        chkLabel.style.alignItems = "center";
+        chkLabel.style.gap = "4px";
+        chkLabel.style.fontSize = "12px";
+        chkLabel.style.flex = "0 0 auto";
+        var chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = it.included;
+        chk.addEventListener("change", function(){ it.included = chk.checked; renderOrderList(); });
+        chkLabel.appendChild(chk);
+        chkLabel.appendChild(document.createTextNode("사용"));
+        row.appendChild(chkLabel);
+
+        var btns = document.createElement("div");
+        btns.className = "im-order-btns";
+        var upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.textContent = "▲";
+        upBtn.disabled = idx === 0;
+        upBtn.addEventListener("click", function(){
+          if(idx === 0) return;
+          var tmp = pool[idx-1]; pool[idx-1] = pool[idx]; pool[idx] = tmp;
+          renderOrderList();
+        });
+        var downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.textContent = "▼";
+        downBtn.disabled = idx === pool.length - 1;
+        downBtn.addEventListener("click", function(){
+          if(idx === pool.length - 1) return;
+          var tmp = pool[idx+1]; pool[idx+1] = pool[idx]; pool[idx] = tmp;
+          renderOrderList();
+        });
+        btns.appendChild(upBtn);
+        btns.appendChild(downBtn);
+        row.appendChild(btns);
+
+        orderList.appendChild(row);
+      });
+    }
+
+    // ---- manual upload ----
+    $("im-upload").addEventListener("change", function(){
+      var files = Array.prototype.slice.call(this.files || []);
+      files.forEach(function(f){
+        var reader = new FileReader();
+        reader.onload = function(){
+          addToImagePool(f.name, "etc", reader.result);
+        };
+        reader.readAsDataURL(f);
+      });
+      this.value = "";
+    });
+
+    // ---- before/after composite (canvas) ----
+    function loadImageEl(src){
+      return new Promise(function(resolve, reject){
+        var img = new Image();
+        img.onload = function(){ resolve(img); };
+        img.onerror = function(){ reject(new Error("이미지를 불러오지 못했습니다")); };
+        img.src = src;
+      });
+    }
+
+    async function compositeBeforeAfter(beforeSrc, afterSrc){
+      var imgB = await loadImageEl(beforeSrc);
+      var imgA = await loadImageEl(afterSrc);
+      var targetH = Math.max(imgB.height, imgA.height, 600);
+      var scaleB = targetH / imgB.height, scaleA = targetH / imgA.height;
+      var wB = Math.round(imgB.width * scaleB), wA = Math.round(imgA.width * scaleA);
+      var gap = 6;
+      var canvas = document.createElement("canvas");
+      canvas.width = wB + wA + gap;
+      canvas.height = targetH;
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imgB, 0, 0, wB, targetH);
+      ctx.drawImage(imgA, wB + gap, 0, wA, targetH);
+
+      function labelBar(x, w, text){
+        var barH = Math.max(34, Math.round(targetH * 0.06));
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(x, 0, w, barH);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold " + Math.round(barH * 0.5) + "px 'Noto Sans KR', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, x + w / 2, barH / 2 + 1);
+      }
+      labelBar(0, wB, "사용 전");
+      labelBar(wB + gap, wA, "사용 후");
+
+      return canvas.toDataURL("image/png");
+    }
+
+    $("im-composite-btn").addEventListener("click", async function(){
+      var beforeId = parseInt(beforeSelect.value, 10);
+      var afterId = parseInt(afterSelect.value, 10);
+      if(!beforeId || !afterId){ showToast("비포/애프터 이미지를 먼저 보관함에 담아주세요"); return; }
+      if(beforeId === afterId){ showToast("비포와 애프터는 서로 다른 이미지를 골라주세요"); return; }
+      var beforeItem = pool.filter(function(it){ return it.id === beforeId; })[0];
+      var afterItem = pool.filter(function(it){ return it.id === afterId; })[0];
+      if(!beforeItem || !afterItem) return;
+      try{
+        var dataUrl = await compositeBeforeAfter(beforeItem.dataUrl, afterItem.dataUrl);
+        addToImagePool("비포/애프터 합성", "composite", dataUrl);
+      }catch(e){
+        showToast("합성에 실패했어요: " + String(e.message || e));
+      }
+    });
+
+    // ---- export: numbered ZIP + manifest.json ----
+    function dataUrlToUint8Array(dataUrl){
+      var base64 = dataUrl.split(",")[1];
+      var byteChars = atob(base64);
+      var bytes = new Uint8Array(byteChars.length);
+      for(var i = 0; i < byteChars.length; i++){ bytes[i] = byteChars.charCodeAt(i); }
+      return bytes;
+    }
+
+    function buildImageManifest(zip, folderPrefix){
+      // folderPrefix: zip 안에서 이미지들을 넣을 상대 경로 접두어 ("" 또는 "images/")
+      var included = pool.filter(function(it){ return it.included; });
+      var manifest = { generatedAt: new Date().toISOString(), images: [] };
+      included.forEach(function(it, idx){
+        var no = idx + 1;
+        var noStr = no < 10 ? "0" + no : String(no);
+        var filename = noStr + "_" + CATEGORY_LABEL[it.category].replace(/[\s\/]/g, "") + ".png";
+        zip.file(folderPrefix + filename, dataUrlToUint8Array(it.dataUrl));
+        manifest.images.push({ order: no, filename: filename, category: it.category, label: it.label });
+      });
+      zip.file(folderPrefix + "manifest.json", JSON.stringify(manifest, null, 2));
+      return included.length;
+    }
+
+    function triggerZipDownload(zip, filename){
+      return zip.generateAsync({ type: "blob" }).then(function(blob){
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      });
+    }
+
+    $("im-export-btn").addEventListener("click", async function(){
+      var includedCount = pool.filter(function(it){ return it.included; }).length;
+      if(includedCount === 0){ showToast("사용할 이미지를 하나 이상 체크해주세요"); return; }
+      if(!window.JSZip){ showToast("ZIP 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요"); return; }
+
+      var zip = new JSZip();
+      buildImageManifest(zip, "");
+      await triggerZipDownload(zip, "image_manifest_" + Date.now() + ".zip");
+      showToast("ZIP을 내려받았어요 (" + includedCount + "장)");
+    });
+
+    // ---- "이 글 내보내기": 원고(post.txt) + images/ 를 naver-publisher가 바로 읽는 posts/<글이름>/ 구조로 묶기 ----
+    var lastPostInfoEl = $("im-lastpost-info");
+    function slugifyForFolder(s){
+      return String(s || "post")
+        .trim()
+        .replace(/[\\/:*?"<>|]/g, "")
+        .replace(/\s+/g, "_")
+        .slice(0, 40) || "post";
+    }
+    function updateLastPostInfo(){
+      if(!lastPostInfoEl) return;
+      var lp = window.__lastRiarPost;
+      if(!lp){
+        lastPostInfoEl.textContent = "아직 이번 세션에서 생성한 원고가 없어요. 새 글 준비 탭에서 원고를 먼저 생성해주세요.";
+        return;
+      }
+      var ago = Math.max(0, Math.round((Date.now() - lp.generatedAt) / 1000));
+      lastPostInfoEl.textContent = "최근 생성 원고: \"" + lp.keyword + "\" (" + ago + "초 전) — 이걸 내보내요.";
+    }
+
+    $("im-export-post-btn").addEventListener("click", async function(){
+      var lp = window.__lastRiarPost;
+      if(!lp || !lp.text){
+        showToast("먼저 새 글 준비 탭에서 원고를 생성해주세요");
+        return;
+      }
+      if(!window.JSZip){ showToast("ZIP 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요"); return; }
+
+      var folderName = slugifyForFolder(lp.keyword) + "_" + new Date().toISOString().slice(0,10).replace(/-/g,"");
+      var zip = new JSZip();
+      zip.file(folderName + "/post.txt", lp.text);
+      var imgCount = buildImageManifest(zip, folderName + "/images/");
+
+      await triggerZipDownload(zip, folderName + ".zip");
+      showToast("내보내기 완료 (이미지 " + imgCount + "장 포함). naver-publisher/posts/ 안에 압축을 풀어주세요");
+    });
+
+    $("im-clear-btn").addEventListener("click", function(){
+      if(pool.length === 0) return;
+      pool = [];
+      renderPool();
+      showToast("보관함을 비웠어요");
+    });
+
+    $("tab-imagemanager").addEventListener("click", updateLastPostInfo);
+
+    renderPool();
+    updateLastPostInfo();
+  })();
+
+  // ================= ACCOUNTS (계정 관리 — accounts.json 내보내기 전용, 로그인은 로컬 스크립트에서) =================
+  (function(){
+    var STORAGE_KEY = "did_naver_accounts_v1";
+    var accounts = [];
+
+    function loadFromStorage(){
+      try{
+        var raw = localStorage.getItem(STORAGE_KEY);
+        accounts = raw ? JSON.parse(raw) : [];
+        if(!Array.isArray(accounts)) accounts = [];
+      }catch(e){ accounts = []; }
+    }
+    function saveToStorage(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts)); }catch(e){ /* 저장 실패해도 화면 동작은 계속 */ }
+    }
+
+    var tableEl = $("acct-table");
+    var tbodyEl = $("acct-tbody");
+    var emptyEl = $("acct-empty");
+    var countEl = $("acct-count");
+
+    function render(){
+      countEl.textContent = "— " + accounts.length + "개";
+      emptyEl.hidden = accounts.length > 0;
+      tableEl.hidden = accounts.length === 0;
+      tbodyEl.innerHTML = "";
+      accounts.forEach(function(acct, idx){
+        var tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border)";
+
+        function td(content){
+          var cell = document.createElement("td");
+          cell.style.padding = "8px 6px";
+          if(typeof content === "string") cell.textContent = content;
+          else cell.appendChild(content);
+          return cell;
+        }
+
+        tr.appendChild(td(acct.label));
+        tr.appendChild(td(acct.blogId));
+
+        var limitInput = document.createElement("input");
+        limitInput.type = "number";
+        limitInput.min = "1";
+        limitInput.value = acct.dailyLimit;
+        limitInput.style.width = "70px";
+        limitInput.addEventListener("change", function(){
+          acct.dailyLimit = parseInt(limitInput.value, 10) || 1;
+          saveToStorage();
+        });
+        tr.appendChild(td(limitInput));
+
+        tr.appendChild(td(acct.note || ""));
+        tr.appendChild(td("naver-publisher/login.js " + acct.label));
+
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "btn ghost";
+        delBtn.textContent = "삭제";
+        delBtn.addEventListener("click", function(){
+          accounts.splice(idx, 1);
+          saveToStorage();
+          render();
+        });
+        tr.appendChild(td(delBtn));
+
+        tbodyEl.appendChild(tr);
+      });
+    }
+
+    $("acct-add-btn").addEventListener("click", function(){
+      var label = $("acct-label").value.trim();
+      var blogId = $("acct-blogid").value.trim();
+      var dailyLimit = parseInt($("acct-limit").value, 10) || 10;
+      var note = $("acct-note").value.trim();
+      if(!label || !blogId){ showToast("라벨과 블로그 ID를 입력해주세요"); return; }
+      if(accounts.some(function(a){ return a.label === label; })){ showToast("이미 있는 라벨이에요"); return; }
+
+      accounts.push({ label: label, blogId: blogId, dailyLimit: dailyLimit, note: note });
+      saveToStorage();
+      render();
+      $("acct-label").value = ""; $("acct-blogid").value = ""; $("acct-note").value = "";
+      $("acct-limit").value = "10";
+      showToast("계정을 추가했어요. naver-publisher에서 쓰려면 로컬에서 login.js " + label + " 도 한 번 실행해주세요");
+    });
+
+    $("acct-export-btn").addEventListener("click", function(){
+      if(accounts.length === 0){ showToast("등록된 계정이 없어요"); return; }
+      var exportData = accounts.map(function(a){
+        return { label: a.label, blogId: a.blogId, dailyLimit: a.dailyLimit, note: a.note || "" };
+      });
+      var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "accounts.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      showToast("accounts.json을 내려받았어요 — naver-publisher 폴더에 덮어써주세요");
+    });
+
+    loadFromStorage();
+    render();
+  })();
 
   // ================= WRITER (server API call) =================
   (function(){
@@ -1079,6 +2373,13 @@
       return personaSel.value === "custom" ? (customInput.value.trim() || "일반적인 30대 여성 소비자") : personaSel.value;
     }
 
+    var IMAGE_COMP_TEXT = {
+      auto11: "사진이 들어가면 자연스러울 위치마다 줄을 바꿔서 \"[이미지 자리: 어떤 사진인지 한 줄 설명]\" 형태로 표시를 남기고, 전체 글에 11개 이상 배치해줘.",
+      mid: "사진이 들어가면 자연스러울 위치마다 줄을 바꿔서 \"[이미지 자리: 어떤 사진인지 한 줄 설명]\" 형태로 표시를 남기고, 전체 글에 5~7개 배치해줘.",
+      few: "사진이 들어가면 자연스러울 위치마다 줄을 바꿔서 \"[이미지 자리: 어떤 사진인지 한 줄 설명]\" 형태로 표시를 남기고, 전체 글에 2~3개만 배치해줘.",
+      none: "이미지 자리 표시 없이 텍스트만 작성해줘."
+    };
+
     genBtn.addEventListener("click", async function(){
       var topic = $("w-topic").value.trim();
       if(!topic){ showToast("주제/제품을 입력해주세요"); $("w-topic").focus(); return; }
@@ -1086,6 +2387,9 @@
       var persona = getPersonaText();
       var tone = $("w-tone").value;
       var useQuote = $("w-quote").value === "yes";
+      var purpose = $("w-purpose").value.trim() || "검색 의도 충족 및 SEO 최적화";
+      var imageComp = $("w-image-comp").value;
+      var imageRule = IMAGE_COMP_TEXT[imageComp] || IMAGE_COMP_TEXT.auto11;
       var minLen = parseInt($("w-minlen").value, 10) || 1500;
       var maxLen = parseInt($("w-maxlen").value, 10) || 1900;
 
@@ -1093,14 +2397,18 @@
         "메타 설명, 제목 표시, 따옴표로 감싸기, '물론이죠' 같은 서두 멘트 없이 원고 본문만 출력해.\n\n" +
         "[필자 페르소나] " + persona + "\n" +
         "[말투] " + tone + "\n" +
+        "[글의 목적] " + purpose + "\n" +
         "[주제/소재]\n" + topic + "\n" +
         "[글자수] 공백 포함 " + minLen + "자 이상 " + maxLen + "자 이하로 정확히 맞춰서 작성 (너무 짧거나 넘기지 말 것)\n" +
         "[인용구] " + (useQuote ? "본문 중간에 실제 사람이 말한 것처럼 자연스러운 인용구(전문가 코멘트나 주변 지인의 후기 등)를 1~2개 자연스럽게 녹여 넣을 것" : "인용구 없이 본인 경험담 위주로 작성") + "\n" +
+        "[이미지 구성] " + imageRule + "\n" +
         "실제 사람이 직접 겪고 쓴 것처럼 자연스러운 문장 흐름, 문단 구분, 구어체 디테일을 살려서 작성해줘. AI가 쓴 티가 나는 뻔한 표현(예: '오늘은 ~에 대해 알아보겠습니다')은 피해줘.";
 
       genBtn.disabled = true; copyBtn.disabled = true;
       outEl.textContent = "생성 중...";
       setCharCount("");
+      var topicLabel = topic.length > 24 ? topic.slice(0,24) + "…" : topic;
+      var workRow = logWork("새 글 준비", topicLabel, "running");
 
       try{
         var res = await fetch("/api/write", {
@@ -1112,17 +2420,804 @@
         if(!res.ok || data.error){
           outEl.textContent = "생성 실패: " + (data.message || data.error || res.statusText);
           showToast("생성 중 문제가 발생했어요");
+          updateWorkStatus(workRow, "fail", data.message || data.error || res.statusText);
         } else {
           outEl.textContent = data.text;
           setCharCount(data.text);
           showToast("원고 생성 완료");
+          addPostToManage(topic, data.text);
+          updateWorkStatus(workRow, "done", topicLabel);
         }
       }catch(e){
         outEl.textContent = "네트워크 오류: " + String(e.message || e);
         showToast("네트워크 오류가 발생했어요");
+        updateWorkStatus(workRow, "fail", "네트워크 오류: " + String(e.message || e));
       }finally{
         genBtn.disabled = false; copyBtn.disabled = false;
       }
+    });
+
+    copyBtn.addEventListener("click", function(){ copyText(outEl.textContent); });
+  })();
+
+  // ================= RIAR WRITER (리아르 · 루미넥신 앰플 전용 작가) =================
+  (function(){
+    var projectSel = $("writer-project");
+    var riarBlock = $("writer-riar-block");
+    var generalBlock = $("writer-general-block");
+    if(!projectSel || !riarBlock || !generalBlock) return;
+
+    projectSel.addEventListener("change", function(){
+      var isRiar = projectSel.value === "riar";
+      riarBlock.hidden = !isRiar;
+      generalBlock.hidden = isRiar;
+    });
+
+    // ---- 고정 사실 DB / 트리거 템플릿 / 이모티콘 밀도 (마스터 프롬프트 그대로) ----
+    var RIAR_TARGET_FACTS =
+      "[루미넥신 앰플 — 고정 사실 DB (타겟 제품)]\n" +
+      "- 제품명(본문 표기): 반드시 \"루미넥신 앰플\"로만 지칭한다. 브랜드명(\"리아르\")은 어디에도 쓰지 않는다.\n" +
+      "- 차별화 근거: \"루미넥신\"은 등록상표이며 독점 키워드로 활용 가능하다.\n" +
+      "- 배합 성분: 트라넥삼산, 나이아신아마이드, 글루타치온, 멜라제로v2.\n" +
+      "- 미백 기능성을 단정적으로 주장할 때는 반드시 나이아신아마이드(식약처 고시원료)·트라넥삼산만 근거로 든다.\n" +
+      "- 글루타치온·멜라제로v2는 \"배합된 성분\" 수준으로만 언급하고, 이 두 성분 단독으로 효능을 단정하지 않는다 (멜라제로v2는 공용 원료명이라 차별화 포인트가 아니다).\n" +
+      "- 제품 포지셔닝: 기능성화장품이며, 의약품 대비 매일 부담 없이 사용 가능하다는 점은 강조할 수 있다.\n" +
+      "- 구매채널: 네이버 스마트스토어(lear_kr). 구매링크나 광고 문구는 본문에 직접 쓰지 않는다 — 시스템이 마지막에 자동으로 붙인다.\n" +
+      "- 위 DB에 없는 성분·수치·효능·인증 정보는 절대 지어내지 않는다.";
+
+    var RIAR_CONTROL_FACTS =
+      "[대조군 제품 — 고정 사실 DB]\n" +
+      "- 도미나크림: 일반의약품, 히드로퀴논 4% (사용 트리거: 자극발생형)\n" +
+      "- 멜라토닝크림: 일반의약품, 히드로퀴논 2% (사용 트리거: 정체기형)\n" +
+      "- 멜라논: 전문의약품, 히드로퀴논 5%+트레티노인+히드로코르티손 (사용 트리거: 비교탐색형 고강도 옵션)\n" +
+      "- 홈케어 기초템(발효팩 등): 화장품, 성분은 브랜드마다 상이 (사용 트리거: 병행시너지형)\n" +
+      "- 레이저 시술: 의료시술, 해당없음 (사용 트리거: 시술대안형)\n" +
+      "대조군 제품을 근거 없이 비방하지 않는다. 자극·정체기 등 부정적 경험은 \"제 경우엔\"이라는 개인 경험 프레이밍을 유지하고, 해당 제품 자체를 깎아내리는 단정적 문장은 쓰지 않는다.";
+
+    var RIAR_TRIGGER_SKELETONS = {
+      "자극발생형": "도입-문제인식 → 대조군(도미나크림) 선택 이유+가격정보 → 성분 설명(적응증 나열) → 사용법 → 변화 타임라인 → 자극 발생·중단 → 전환+루미넥신 앰플 효과+대구법 마무리",
+      "정체기형": "도입 → 대조군(멜라토닝크림) 배경+가격 → 효과 정체 경험 → 정체 원인 설명 → 루미넥신 앰플 병행/전환 → 변화 재개+대구법 마무리",
+      "병행시너지형": "도입 → 홈케어 기초템 사용+가격정보 → 한계 체감 → 루미넥신 앰플 발견 계기 → 병행 시작 → 시너지 체감+마무리",
+      "비교탐색형": "도입-추천계기 → 시중 제품 비교(가격·성분·분류 포함, 대조군 DB 중 3~4개 나열) → 루미넥신 앰플 선택 이유 → 사용 후 만족도+마무리",
+      "시술대안형": "도입-시술 고려 → 레이저 시술 비용·부담 정보 → 홈케어 우선 시도 결심 → 루미넥신 앰플 사용 → 변화 체감+마무리",
+      "정보형": "개념 설명형 — 후기 형식이 아닌 정보 전달 구성으로 작성하고, 본문 중후반부에 루미넥신 앰플을 자연스럽게 언급 (도입부 제외 6~7개 소제목)"
+    };
+
+    var RIAR_EMOJI_DENSITY = {
+      "담백형": "이모티콘(ㅠㅠ, ㅎㅎ, ㅋㅋ, ~~ 등)은 전체 글에서 1~2회만, 절정 지점(자극 발생·정체기 인지·전환 계기)에 집중 배치한다.",
+      "감정형": "이모티콘(ㅠㅠ, ㅎㅎ, ㅋㅋ, ~~ 등)은 전체 글에서 3~5회, 절정 지점(자극 발생·정체기 인지·전환 계기)에 집중 배치한다.",
+      "정보전달형": "이모티콘은 전체 글에서 0~1회만 사용하거나 아예 쓰지 않는다."
+    };
+
+    // 경쟁사 "멜라즈"가 실제로 발행해서 검색 노출에 성공한 제목들. 대표님이 직접 확인해서 주신 실제 데이터라
+    // 일반적인 공식(기간+용량+후기어미)보다 이 목록 자체를 최우선 참고 자료로 프롬프트에 그대로 넣는다.
+    var RIAR_MELAZ_REFERENCE_TITLES = [
+      "도미나크림 2개월 사용, 약국 구매 솔직후기",
+      "멜라토닝크림 1년간 쓰면서 드디어 알아낸 (사용법 및 꿀팁)",
+      "누룩밤 수면팩 40대 기미 5주 솔직후기",
+      "이지듀 기미앰플과 크림 1개월 사용 솔직후기",
+      "도미나크림 사용법 알고쓰자 모르고 쓰면 역효과",
+      "누룩밤 수면팩 기미 잡티에 잘 먹힐까?",
+      "이지듀 기미앰플 30ml 한달 실사용 내돈내산 후기",
+      "흑자 제거 패치 효과 한달 실사용 내돈내산 후기",
+      "기미제거 크림 멜라토닝크림 연고 효과 실사용 후기",
+      "색소침착 연고 약국 처방 크림 비교 후기",
+      "이지듀기미앰플 세 달 사용해본 50대 솔직후기",
+      "코페르 큐리페어 멜라크림 2개월 실제후기",
+      "도미나크림 기미관리 8주사용 솔직후기",
+      "이지듀 기미앰플 3개월 사용 내돈내산 실제 후기",
+      "이지듀 기미앰플 12ml (올리브영 내돈내산)후기",
+      "멜라논 연고 기미 제거 내돈내산 병원처방",
+      "기미 제거 연고 효과 약국 멜라토닝크림 내돈내산 실사용 후기",
+      "다이소 기미크림 내돈내산 3개월 실사용 효과 후기",
+      "도미나스 기미크림 잡티 내돈내산 연고 효과 후기",
+      "기미 잡티 연고 코페르 기미크림 내돈내산 실사용 후기",
+      "얼굴 검버섯 크림 약국 멜라논크림 내돈내산 후기",
+      "함익병 기미크림 멜라논 크림 효과 연고 내돈내산 후기",
+      "메디필 멜라논엑스 크림 다이소 연고 차이 내돈내산 후기",
+      "기미 잡티 크림 추천 약국 연고 내돈내산 후기",
+      "도미나 기미크림 내돈내산 약국 가격 한달 효과 후기",
+      "순수 비타민c 앰플 비교 한달 실사용 내돈내산 후기",
+      "올리브영 기미크림 3종 내돈내산 비교 한달 후기",
+      "도미나스 앰플 효과 성분 내돈내산 후기",
+      "이지듀 기미패치 효과 실사용 내돈내산 솔직후기"
+    ];
+
+    // 키워드와 겹치는 단어가 있는 제목을 우선으로, 최대 N개만 골라서 프롬프트에 넣는다(전체 29개를 매번
+    // 다 넣으면 프롬프트가 불필요하게 길어지니, 지금 키워드와 관련 있는 것부터 보여준다).
+    function pickRelevantMelazTitles(keyword, limit){
+      var kw = String(keyword || "");
+      var scored = RIAR_MELAZ_REFERENCE_TITLES.map(function(title){
+        var score = 0;
+        // 2글자 이상 어절 단위로 겹치는지 대충 체크(정교한 형태소 분석 없이 실용적으로).
+        kw.split(/[\s,·|]+/).forEach(function(tok){
+          if(tok.length >= 2 && title.indexOf(tok) !== -1) score++;
+        });
+        return { title: title, score: score };
+      });
+      scored.sort(function(a, b){ return b.score - a.score; });
+      var top = scored.filter(function(s){ return s.score > 0; }).slice(0, limit);
+      // 겹치는 키워드가 하나도 없으면(완전히 새로운 제품군), 그냥 앞에서부터 일부를 보여줘서
+      // 최소한 "패턴" 감각은 유지시킨다.
+      if(top.length === 0){ top = scored.slice(0, limit); }
+      return top.map(function(s){ return s.title; });
+    }
+
+    function buildRiarPrompt(v){
+      var triggerBlock;
+      if(v.trigger === "auto" || !RIAR_TRIGGER_SKELETONS[v.trigger]){
+        var lines = [];
+        Object.keys(RIAR_TRIGGER_SKELETONS).forEach(function(k){
+          lines.push("- " + k + ": " + RIAR_TRIGGER_SKELETONS[k]);
+        });
+        triggerBlock = "[매칭 트리거 템플릿 — 아래 중 키워드·검색의도에 가장 잘 맞는 것을 스스로 하나 골라, 그 뼈대에 맞춰 소제목을 구성한다]\n" + lines.join("\n");
+      } else {
+        triggerBlock = "[매칭 트리거 템플릿: " + v.trigger + "]\n" + RIAR_TRIGGER_SKELETONS[v.trigger];
+      }
+
+      var emojiRule = RIAR_EMOJI_DENSITY[v.emojiTone] || RIAR_EMOJI_DENSITY["담백형"];
+      var melazExamples = pickRelevantMelazTitles(v.keywords, 6);
+      var melazExamplesBlock = melazExamples.map(function(t){ return "  - \"" + t + "\""; }).join("\n");
+
+      return (
+        "너는 네이버 블로그에 올라가는 제품 체험 후기 원고를 쓰는 카피라이터다. 실제 소비자가 쓴 것처럼 자연스럽게, 아래 규칙을 절대 벗어나지 않는 선에서 작성한다.\n\n" +
+        "[절대 규칙]\n" +
+        "1. 사실은 아래 두 \"고정 사실 DB\"에 있는 내용만 사용한다. DB에 없는 성분·수치·효능·인증 정보를 지어내지 않는다.\n" +
+        "2. 브랜드명(\"리아르\")은 어디에도 쓰지 않는다. 제품은 반드시 \"루미넥신 앰플\"로만 지칭한다.\n" +
+        "3. 미백 기능성을 단정적으로 주장할 때는 나이아신아마이드·트라넥삼산만 근거로 한다. 글루타치온·멜라제로v2는 \"배합된 성분\" 수준으로만 언급한다.\n" +
+        "4. 과장 확언 표현 금지: \"무조건\", \"100% 없어진다\", \"완전히 사라졌다\" 등은 절대 쓰지 않는다. 마무리 섹션에는 \"기미가 단기간에 싹 없어진 건 아니지만\" 류의 절제된 표현을 반드시 넣는다.\n" +
+        "5. 대조군 제품을 근거 없이 비방하지 않는다. 자극·정체기 등 부정적 경험은 \"제 경우엔\"이라는 개인 경험 프레이밍을 유지한다.\n" +
+        "6. 본문 마지막에 광고 표시 문구나 구매링크를 절대 스스로 쓰지 마라. 그 부분은 시스템이 생성 후 자동으로 고정 삽입한다. 너는 [본문]까지만 작성한다.\n" +
+        "7. 키워드에 실제 타 브랜드명(예: 이지듀, 다이소, 올리브영, 코페르, 함익병 등 실존 인물)이 들어있어도, 그 브랜드·인물의 효능·성분·발언을 새로 지어내지 않는다. 검색 후킹용 소재로 제목·도입부에만 자연스럽게 녹이고, 구체적인 사실 서술은 항상 아래 두 고정 사실 DB(루미넥신 앰플/대조군)에 있는 내용만 사용한다.\n" +
+        "8. 키워드나 본문에 등장하는 제품이 아래 \"고정 사실 DB\"의 5개 항목(도미나크림/멜라토닝크림/멜라논/홈케어 기초템/레이저 시술) 중 어디에도 해당하지 않으면, 그 제품에 대해 성분 함량 %, 정확한 가격(원 단위 숫자), 인증·허가 정보를 절대 구체적으로 쓰지 않는다. 이런 미등록 제품은 \"약국에서 파는 미백 크림\", \"가격대는 매장마다 달랐다\", \"성분은 제품마다 다르니 직접 확인하는 게 안전하다\" 같은 뭉뚱그린 표현만 쓴다. 숫자를 지어내느니 차라리 숫자 없이 쓰는 쪽을 택한다. 단, [입력 변수]의 \"비고\"란에 사용자가 해당 제품의 사실을 직접 제공한 경우에만 그 값을 그대로 사용해도 된다.\n\n" +
+        RIAR_TARGET_FACTS + "\n\n" +
+        RIAR_CONTROL_FACTS + "\n\n" +
+        triggerBlock + "\n\n" +
+        "[줄바꿈 포맷 규칙 — 네이버 블로그 가독성 포맷, 필수]\n" +
+        "- 산문 문단으로 쓰지 말고, 한 문장(또는 이어지는 짧은 문장 2개)을 8~20자 단위 구절로 줄바꿈한다.\n" +
+        "- 구절 그룹(문장 1~2개 분량)이 끝나면 빈 줄을 하나 넣는다.\n" +
+        "- 소제목 앞뒤로는 빈 줄을 2줄씩 넣는다.\n" +
+        "- 마침표가 있어도 한 줄에 다 쓰지 않고 주어/서술어, 접속사 앞 등 자연스러운 끊어 읽기 지점에서 줄을 바꾼다.\n" +
+        "- 이 포맷은 산문형 초안을 다 쓴 뒤 마지막 단계에서 반드시 적용해서 출력한다.\n\n" +
+        "[소제목 표시 규칙 — 필수]\n" +
+        "- 소제목은 마크다운 별표(**소제목**)로 감싸지 않는다. 네이버 블로그 에디터에 붙여넣으면 별표가 그대로 텍스트로 보여서 지저분해진다.\n" +
+        "- 대신 소제목 줄의 맨 앞에 반드시 \"▶ \" 기호 하나만 붙이고, 그 줄에는 소제목 텍스트만 쓴다. 예: \"▶ 약국에서 기미크림 구매, 가격 확인\"\n" +
+        "- 본문 문장 중간이나 강조하고 싶은 단어에도 별표(**)를 절대 쓰지 않는다.\n\n" +
+        "[구조 규칙]\n" +
+        "- 전체 분량: 공백 제외 " + v.minLen + "~" + v.maxLen + "자로 정확히 맞춘다. 이건 권장이 아니라 필수 조건이다. 공백 제외 " + v.minLen + "자에 못 미치면 그 원고는 실패작으로 간주한다.\n" +
+        "- 분량을 채우기 위해 소제목 6~7개 각각을 최소 3~4개 문단(문단당 2~4문장)으로 충분히 길게 써라. 한두 문장짜리 소제목 섹션을 이어붙이는 방식으로는 목표 분량에 절대 도달하지 못한다.\n" +
+        "- 본문을 다 쓴 뒤, 스스로 공백을 제외한 글자 수를 대략 세어 보고 " + v.minLen + "자에 못 미친다고 판단되면, 소제목을 늘리거나 각 섹션의 경험담·디테일(사용 시점, 느낌, 비교 과정 등)을 더 추가해서 분량을 채운 다음 최종본을 출력한다.\n" +
+        "- 소제목: 도입부 제외 6~7개.\n" +
+        "- 성분 설명 섹션에는 반드시 적응증(기미/주근깨/색소침착 등)을 나열해 전문성을 만든다.\n" +
+        "- 마무리 섹션에는 \"대조군은 ~였다면, 루미넥신 앰플은 ~이다\" 형태의 대구법 문장을 반드시 넣는다.\n" +
+        "- 연관 키워드가 주어졌다면, 그중 제목에 쓰지 않은 나머지 1~2개도 본문 소제목이나 문장 속에 자연스럽게 녹여서 (억지로 나열하지 말고) 연관검색어 노출 범위를 넓힌다.\n" +
+        "- " + emojiRule + "\n\n" +
+        "[입력 변수]\n" +
+        "키워드: " + v.keywords + "\n" +
+        "검색의도: " + (v.intent || "(미지정)") + "\n" +
+        "연관 키워드(네이버 자동완성 기반, 검색 노출 확장용): " + (v.related || "(없음)") + "\n" +
+        "페르소나: " + v.persona + "\n" +
+        (v.note ? ("비고: " + v.note + "\n") : "") +
+        "\n[제목 스타일 — 아래 공식을 그대로 따른다. 절대 벗어나지 마라]\n" +
+        "제목 공식: [대조군 제품명] + [아래 A 또는 B 중 1~2개] + [후기 어미]\n" +
+        "  A. 기간(개월/주/년), 용량(ml), 나이대, 구매처(약국/올리브영/다이소 등)\n" +
+        "  B. 위 [입력 변수]의 \"연관 키워드\"가 있으면 그중 실제 검색량이 있을 법한 것 1개 (예: 효과, 사용법, 성분, 40ml, 내돈내산 등) — 메인 키워드에 자연스럽게 붙여서, 이 글이 메인 키워드뿐 아니라 그 연관 키워드로 검색해도 노출되게 만든다.\n" +
+        "연관 키워드가 주어졌다면 A만 쓰지 말고 반드시 B도 고려해서, 둘 중 이 제목에 가장 자연스럽고 검색 노출에 유리한 조합을 고른다. 연관 키워드가 \"(없음)\"이면 A만 사용한다.\n" +
+        "후기 어미는 다음 중 하나만 쓴다: \"솔직후기\", \"내돈내산 후기\", \"내돈내산 실사용 후기\", \"실사용 후기\", \"체험 후기\", \"실제후기\".\n" +
+        "**[최우선 참고 자료] 경쟁사 \"멜라즈\"가 실제로 발행해서 검색 노출에 성공한 제목들이다. 아래 어떤 일반 공식·설명보다 이 목록을 최우선으로 따른다. 지금 키워드와 가장 비슷한 것의 어순·길이·정보 조합 방식을 그대로 본떠서 짓는다:**\n" +
+        melazExamplesBlock + "\n" +
+        "(참고용 일반 형태 예시: \"이지듀 기미앰플 12ml (올리브영 내돈내산)후기\" 처럼 용량+구매처 조합, \"이지듀 기미패치 효과 실사용 내돈내산 솔직후기\" 처럼 연관 키워드 \"효과\" 조합도 가능하다.)\n" +
+        "나쁜 예시(절대 이렇게 쓰지 마라 — 실제로 아래처럼 잘못 나온 사례임):\n" +
+        "  X \"멜라토닝크림 8개월 사용 후 정체기, 전환 계기 솔직후기\" → 이유: \"정체기\", \"전환 계기\" 같은 스토리텔링/서사 단어가 제목에 들어감\n" +
+        "  X \"도미나크림 3개월 약국 구매 후 중단, 루미넥신 앰플로 바꾼 솔직후기\" → 이유: \"중단\", \"~로 바꾼\" 같은 서사 단어 + 타겟 제품명이 들어감\n" +
+        "  O 위 두 사례는 각각 \"멜라토닝크림 8개월 사용 솔직후기\", \"도미나크림 3개월 약국 구매 솔직후기\" 처럼 [제품명]+[정보]+[후기 어미]로만 끝내야 한다.\n" +
+        "**제목 절대 규칙 (이 중 하나라도 어기면 실패로 간주한다):**\n" +
+        "1. 제목에는 \"루미넥신\", \"앰플\", \"리아르\", \"LE:AR\", \"Spot Corrector\" 등 타겟 제품/브랜드를 가리키는 어떤 단어도 넣지 않는다. 제목은 오직 대조군(키워드) 제품명·정보로만 구성한다.\n" +
+        "2. 제목에는 \"정체기\", \"전환\", \"계기\", \"바꾼\", \"바꿔\", \"갈아탄\", \"중단\", \"끊고\" 등 스토리·서사·전환을 암시하는 단어를 절대 쓰지 않는다. 이런 서사(정체기를 겪다가 다른 제품으로 전환한 이야기)는 본문에서만 풀어내고, 제목은 위 공식대로 [대조군 제품명]+[정보]+[후기 어미]로 담백하게 끝낸다.\n" +
+        "3. 제목은 쉼표(,) 기준으로 최대 2구절까지만 허용하고, 그 이상 길게 늘어놓지 않는다.\n\n" +
+        "[출력 형식]\n" +
+        "[제목]\n" +
+        "위 제목 스타일을 따라 키워드가 자연스럽게 들어간 제목 한 줄\n\n" +
+        "[본문]\n" +
+        "위 소제목 구조를 따라 줄바꿈 포맷을 적용해서 작성한다.\n\n" +
+        "메타 설명, 따옴표로 감싸기, '물론이죠' 같은 서두 멘트, [마무리 고정 삽입] 섹션 없이 위 [제목]과 [본문]만 출력해."
+      );
+    }
+
+    // 프롬프트 지시만으로는 분량 미달이 자주 발생해서, 생성 결과가 짧으면 이 프롬프트로 "더 길게 다시 써라"라고
+    // 한 번 더 요청한다(최대 2회). 이어쓰기(뒤에 덧붙이기) 방식은 마무리 문단이 두 번 생기는 등 어색해지기 쉬워서,
+    // 대신 같은 제목·사실관계를 유지한 채 [제목]/[본문] 전체를 처음부터 더 길게 다시 쓰게 한다.
+    function buildRiarRetryPrompt(basePrompt, prevDraft, prevLen, minLen, maxLen){
+      return (
+        basePrompt + "\n\n" +
+        "[분량 부족 — 다시 쓰기 지시]\n" +
+        "방금 너가 쓴 아래 초안은 공백 제외 " + prevLen + "자로, 목표(공백 제외 " + minLen + "~" + maxLen + "자)에 크게 못 미친다. 이건 실패작이다.\n" +
+        "아래 초안의 제목·소제목 순서·사실관계(고정 사실 DB 내용)는 그대로 유지하되, 소제목 6~7개 각각을 최소 3~4개 문단(문단당 2~4문장)으로 확장해서 공백 제외 " + minLen + "자 이상이 되도록 [제목]과 [본문] 전체를 처음부터 다시 출력해라. 경험담의 시점·감각적 묘사·비교 과정 등 구체적인 디테일을 추가해서 채우고, 목표 분량에 도달하기 전에는 마무리하지 마라. 위에서 정한 모든 절대 규칙(브랜드명 금지, 미등록 제품 수치 지어내기 금지 등)은 그대로 지킨다.\n\n" +
+        "[방금 쓴 짧은 초안 — 그대로 다시 쓰지 말고 반드시 이보다 훨씬 길게 확장할 것]\n" +
+        prevDraft
+      );
+    }
+
+    var genBtn = $("riar-gen"), copyBtn = $("riar-copy");
+    var outEl = $("riar-out"), charEl = $("riar-charcount");
+    var checksEl = $("riar-checks");
+
+    var FORBIDDEN_BRAND = "리아르";
+    var BANNED_PHRASES = ["무조건", "100% 없어", "100%없어", "완전히 사라졌"];
+
+    function setCharCount(text){
+      if(!text){ charEl.textContent = ""; return; }
+      var noSpace = text.replace(/\s/g, "").length;
+      charEl.textContent = "(공백 제외 " + noSpace + "자 · 공백 포함 " + text.length + "자)";
+    }
+
+    // ================= 리아르 키워드 뱅크 =================
+    // 단순히 "최근 쓴 것"만 보여주던 것에서 한 걸음 더 나아가, 앞으로 써야 할 키워드 후보를
+    // 미리 등록해두고(할 일 목록) 체크해서 한 번에 입력창에 밀어넣는 방식으로 바꿨다.
+    // 원고가 생성되면 해당 키워드는 자동으로 "완료" 표시가 되어, 뭘 이미 다뤘고 뭐가 남았는지
+    // 한눈에 보인다. 등록을 안 해도 생성만 하면 자동으로 뱅크에 기록되니 기존 방식도 그대로 된다.
+    var RIAR_KEYWORD_BANK_KEY = "riar_keyword_bank_v1";
+    var RIAR_KEYWORD_BANK_MAX = 300;
+    var kbChipsEl = $("riar-keyword-bank-chips");
+    var kbActionsEl = $("riar-keyword-bank-actions");
+    var kbFooterEl = $("riar-keyword-bank-footer");
+    var kbUseBtn = $("riar-keyword-bank-use-btn");
+    var kbClearDoneBtn = $("riar-keyword-bank-clear-done");
+    var kbAddToggleBtn = $("riar-keyword-bank-add-toggle");
+    var kbAddRow = $("riar-keyword-bank-add-row");
+    var kbAddTextarea = $("riar-keyword-bank-add");
+    var kbAddBtn = $("riar-keyword-bank-add-btn");
+    var kbProgressEl = $("riar-keyword-bank-progress");
+
+    // 뱅크 항목 하나를 "키워드 | 검색의도 | 연관키워드" 줄 형식으로 되돌린다. (parseRiarBatch의 역변환)
+    function buildRiarKeywordLine(item){
+      if(item.related){
+        return item.keyword + " | " + (item.intent || "") + " | " + item.related;
+      }
+      if(item.intent){
+        return item.keyword + " | " + item.intent;
+      }
+      return item.keyword;
+    }
+
+    function loadRiarKeywordBank(){
+      try{
+        var raw = localStorage.getItem(RIAR_KEYWORD_BANK_KEY);
+        var arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      }catch(e){
+        return [];
+      }
+    }
+
+    function saveRiarKeywordBank(arr){
+      try{
+        localStorage.setItem(RIAR_KEYWORD_BANK_KEY, JSON.stringify(arr));
+      }catch(e){
+        // 저장 실패(프라이빗 모드 등)해도 화면 표시는 계속 동작하게 조용히 무시한다.
+      }
+    }
+
+    // 등록(할 일로 추가) — 이미 있는 키워드면 건드리지 않는다(완료 상태를 지우지 않기 위해).
+    function addKeywordsToBank(rows){
+      var arr = loadRiarKeywordBank();
+      var existing = {};
+      arr.forEach(function(item){ existing[item.keyword] = true; });
+      rows.forEach(function(row){
+        if(!row.keyword || existing[row.keyword]) return;
+        arr.unshift({ keyword: row.keyword, intent: row.intent || "", related: row.related || "", done: false, ts: Date.now() });
+        existing[row.keyword] = true;
+      });
+      if(arr.length > RIAR_KEYWORD_BANK_MAX) arr = arr.slice(0, RIAR_KEYWORD_BANK_MAX);
+      saveRiarKeywordBank(arr);
+      renderRiarKeywordBank();
+    }
+
+    // 원고 생성이 성공하면 호출 — 뱅크에 있으면 완료 표시, 없으면 완료 상태로 새로 추가(기존 "최근 사용" 동작 유지).
+    function markKeywordDoneInBank(keyword, intent){
+      keyword = String(keyword || "").trim();
+      if(!keyword) return;
+      var arr = loadRiarKeywordBank();
+      var found = arr.filter(function(item){ return item.keyword === keyword; })[0];
+      if(found){
+        found.done = true;
+        found.ts = Date.now();
+      } else {
+        arr.unshift({ keyword: keyword, intent: String(intent || "").trim(), done: true, ts: Date.now() });
+      }
+      if(arr.length > RIAR_KEYWORD_BANK_MAX) arr = arr.slice(0, RIAR_KEYWORD_BANK_MAX);
+      saveRiarKeywordBank(arr);
+      renderRiarKeywordBank();
+    }
+
+    function removeKeywordFromBank(keyword){
+      var arr = loadRiarKeywordBank().filter(function(item){ return item.keyword !== keyword; });
+      saveRiarKeywordBank(arr);
+      renderRiarKeywordBank();
+    }
+
+    function updateKeywordBankActionsVisibility(){
+      if(!kbChipsEl || !kbActionsEl) return;
+      var anyChecked = kbChipsEl.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+      kbActionsEl.hidden = !anyChecked;
+    }
+
+    function renderRiarKeywordBank(){
+      if(!kbChipsEl) return;
+      var arr = loadRiarKeywordBank();
+      // 할 일(todo)을 먼저, 완료된 건 뒤로 — 남은 작업이 항상 위에서 바로 보이게.
+      var todo = arr.filter(function(i){ return !i.done; });
+      var done = arr.filter(function(i){ return i.done; });
+      var ordered = todo.concat(done);
+
+      kbChipsEl.innerHTML = "";
+
+      if(arr.length === 0){
+        var empty = document.createElement("span");
+        empty.className = "kb-empty";
+        empty.textContent = "등록된 키워드가 없어요. 위 \"+ 후보 키워드 등록\"으로 미리 넣어두거나, 원고를 생성하면 자동으로 쌓여요.";
+        kbChipsEl.appendChild(empty);
+        if(kbProgressEl) kbProgressEl.hidden = true;
+        if(kbActionsEl) kbActionsEl.hidden = true;
+        if(kbFooterEl) kbFooterEl.hidden = true;
+        return;
+      }
+
+      if(kbProgressEl){
+        kbProgressEl.hidden = false;
+        kbProgressEl.textContent = "총 " + arr.length + "개 중 " + done.length + "개 생성 완료 · " + todo.length + "개 남음";
+      }
+      if(kbFooterEl) kbFooterEl.hidden = done.length === 0;
+
+      ordered.forEach(function(item){
+        var chip = document.createElement("label");
+        chip.className = "kb-chip" + (item.done ? " kb-done" : "");
+        var titleParts = [];
+        if(item.intent) titleParts.push("검색의도: " + item.intent);
+        if(item.related) titleParts.push("연관 키워드: " + item.related);
+        chip.title = titleParts.join(" · ");
+
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.addEventListener("change", updateKeywordBankActionsVisibility);
+        chip.appendChild(cb);
+
+        var dot = document.createElement("span");
+        dot.className = "kb-chip-dot";
+        chip.appendChild(dot);
+
+        var label = document.createElement("span");
+        label.className = "kb-chip-label";
+        label.textContent = item.keyword.length > 26 ? item.keyword.slice(0, 26) + "…" : item.keyword;
+        chip.appendChild(label);
+
+        var xBtn = document.createElement("span");
+        xBtn.className = "kb-chip-x";
+        xBtn.textContent = "✕";
+        xBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          removeKeywordFromBank(item.keyword);
+        });
+        chip.appendChild(xBtn);
+
+        chip._kbItem = item;
+        kbChipsEl.appendChild(chip);
+      });
+
+      updateKeywordBankActionsVisibility();
+    }
+
+    if(kbAddToggleBtn && kbAddRow){
+      kbAddToggleBtn.addEventListener("click", function(){
+        kbAddRow.hidden = !kbAddRow.hidden;
+        if(!kbAddRow.hidden) kbAddTextarea.focus();
+      });
+    }
+
+    if(kbAddBtn){
+      kbAddBtn.addEventListener("click", function(){
+        var rows = parseRiarBatch(kbAddTextarea.value);
+        if(rows.length === 0){ showToast("등록할 키워드를 한 줄 이상 입력해주세요"); return; }
+        addKeywordsToBank(rows);
+        kbAddTextarea.value = "";
+        kbAddRow.hidden = true;
+        showToast(rows.length + "개 키워드를 뱅크에 등록했어요");
+      });
+    }
+
+    if(kbUseBtn){
+      kbUseBtn.addEventListener("click", function(){
+        var checkedChips = Array.prototype.filter.call(
+          kbChipsEl.querySelectorAll(".kb-chip"),
+          function(chip){ return chip.querySelector('input[type="checkbox"]').checked; }
+        );
+        if(checkedChips.length === 0) return;
+        var kwEl = $("riar-keywords");
+        var lines = kwEl.value.split("\n").map(function(l){ return l.trim(); }).filter(function(l){ return l !== ""; });
+        checkedChips.forEach(function(chip){
+          var item = chip._kbItem;
+          var line = buildRiarKeywordLine(item);
+          if(lines.indexOf(line) === -1 && lines.indexOf(item.keyword) === -1){
+            lines.push(line);
+          }
+          chip.querySelector('input[type="checkbox"]').checked = false;
+        });
+        kwEl.value = lines.join("\n");
+        kwEl.focus();
+        updateKeywordBankActionsVisibility();
+        showToast(checkedChips.length + "개 키워드를 입력창에 추가했어요");
+      });
+    }
+
+    if(kbClearDoneBtn){
+      kbClearDoneBtn.addEventListener("click", function(){
+        var arr = loadRiarKeywordBank().filter(function(item){ return !item.done; });
+        saveRiarKeywordBank(arr);
+        renderRiarKeywordBank();
+        showToast("완료된 키워드를 목록에서 정리했어요");
+      });
+    }
+
+    renderRiarKeywordBank();
+
+    var TITLE_FORBIDDEN_WORDS = ["루미넥신", "리아르", "LE:AR", "Spot Corrector"];
+    var TITLE_NARRATIVE_WORDS = ["정체기", "전환", "계기", "바꾼", "바꿔", "갈아탄", "중단", "끊고"];
+
+    function extractTitleLine(text){
+      var m = text.match(/\[제목\]\s*\n([\s\S]*?)(\n\s*\n|\[본문\])/);
+      if(m) return m[1].trim();
+      // [제목] 표시가 없으면 첫 줄을 제목으로 간주한다.
+      return String(text).split("\n")[0].trim();
+    }
+
+    function runComplianceChecks(text, skipDisclosure){
+      var issues = [];
+      if(text.indexOf(FORBIDDEN_BRAND) !== -1){
+        issues.push("브랜드명(\"" + FORBIDDEN_BRAND + "\")이 본문에 노출되었어요. 직접 확인 후 수정해주세요.");
+      }
+      var titleLine = extractTitleLine(text);
+      TITLE_FORBIDDEN_WORDS.forEach(function(w){
+        if(titleLine.indexOf(w) !== -1){
+          issues.push("제목에 타겟 제품/브랜드명(\"" + w + "\")이 들어갔어요. 제목에서 빼고 다시 생성해주세요.");
+        }
+      });
+      TITLE_NARRATIVE_WORDS.forEach(function(w){
+        if(titleLine.indexOf(w) !== -1){
+          issues.push("제목에 서사형 표현(\"" + w + "\")이 들어갔어요. [제품명]+[기간/용량/구매처]+[후기 어미] 형태로 다시 생성해주세요.");
+        }
+      });
+      BANNED_PHRASES.forEach(function(p){
+        if(text.indexOf(p) !== -1){
+          issues.push("과장 확언 표현(\"" + p + "\")이 감지되었어요. 절제된 표현으로 바꿔주세요.");
+        }
+      });
+      var bodyLen = text.replace(/\s/g, "").length;
+      if(bodyLen < 1500 || bodyLen > 2100){
+        issues.push("공백 제외 글자수가 " + bodyLen + "자예요. 목표 범위(1,600~1,900자)와 차이가 있으니 확인해주세요.");
+      }
+
+      checksEl.innerHTML = "";
+
+      if(skipDisclosure){
+        var skipNotice = document.createElement("div");
+        skipNotice.className = "card";
+        skipNotice.style.padding = "10px 14px";
+        skipNotice.style.borderColor = "#e0a30a";
+        skipNotice.innerHTML = "<span style='font-weight:700; color:#b8860b;'>광고 표시 생략 모드</span> <span class='hint'>이 원고에는 광고 표시 문구·구매링크가 빠져 있어요. 교육/내부용으로만 쓰고, 실제로 발행할 때는 체크를 해제하고 다시 생성해주세요.</span>";
+        checksEl.appendChild(skipNotice);
+      }
+
+      if(issues.length === 0){
+        var ok = document.createElement("div");
+        ok.className = "card";
+        ok.style.padding = "10px 14px";
+        ok.style.borderColor = "var(--accent)";
+        ok.innerHTML = "<span style='font-weight:700; color:var(--accent);'>자동 점검 통과</span> <span class='hint'>브랜드명 미노출 · 과장 표현 없음" + (skipDisclosure ? "" : " · 광고 문구 자동 삽입 완료") + ". 그래도 발행 전에 한 번 더 읽어보는 걸 권장해요.</span>";
+        checksEl.appendChild(ok);
+      } else {
+        issues.forEach(function(msg){
+          var warn = document.createElement("div");
+          warn.className = "card";
+          warn.style.padding = "10px 14px";
+          warn.style.borderColor = "#e0a30a";
+          warn.innerHTML = "<span style='font-weight:700; color:#b8860b;'>확인 필요</span> <span class='hint'>" + escapeHtml(msg) + "</span>";
+          checksEl.appendChild(warn);
+        });
+      }
+      return issues;
+    }
+
+    // 원고 1건을 실제로 생성하는 공통 로직. 키워드가 몇 줄이든 이 함수를 줄 수만큼 반복 호출한다.
+    // opts: { trigger, persona, emojiTone, minLen, maxLen, note, link, skipDisclosure }
+    async function generateOneRiarPost(keywords, intent, related, opts){
+      var v = {
+        keywords: keywords,
+        intent: intent || "",
+        related: related || "",
+        trigger: opts.trigger,
+        persona: opts.persona,
+        emojiTone: opts.emojiTone,
+        minLen: opts.minLen,
+        maxLen: opts.maxLen,
+        note: opts.note
+      };
+      var prompt = buildRiarPrompt(v);
+      var firstKeywordLabel = keywords.split("\n")[0].trim();
+      var shortLabel = firstKeywordLabel.length > 24 ? firstKeywordLabel.slice(0,24) + "…" : firstKeywordLabel;
+      var workRow = logWork("리아르 원고 생성", shortLabel, "running");
+
+      try{
+        var res = await fetch("/api/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt })
+        });
+        var data = await res.json();
+        if(!res.ok || data.error){
+          var msg = data.message || data.error || res.statusText;
+          updateWorkStatus(workRow, "fail", msg);
+          return { ok: false, message: msg };
+        }
+
+        function bareLen(t){ return String(t || "").replace(/\s/g, "").length; }
+
+        // 혹시 모델이 마무리 문구를 스스로 붙였으면 제거한다. 실제 발행용(광고 표시 생략을 켜지 않은 경우)에는
+        // 표시광고법 준수 문구를 모델 출력에 맡기지 않고 항상 이 코드가 직접 삽입한다.
+        // 단, 본문 중간에 우연히 비슷한 단어가 섞여 있을 때 그 뒤 전체(수백~수천 자)가 통째로 잘려나가는
+        // 걸 막기 위해, 그 문구가 실제로 "글 끝부분"(마지막 250자 이내)에 있을 때만 잘라낸다.
+        function stripSelfClosing(text){
+          var t = text;
+          var m1 = t.match(/\*?\[체험\s*후기\][\s\S]*$/);
+          if(m1 && bareLen(m1[0]) <= 250){ t = t.slice(0, m1.index).trim(); }
+          var m2 = t.match(/구매는[\s\S]*하실\s*수\s*있어요\.?\s*$/);
+          if(m2 && bareLen(m2[0]) <= 250){ t = t.slice(0, m2.index).trim(); }
+          return t;
+        }
+
+        var rawUnscrubbed = String(data.text || "").trim();
+        var raw = stripSelfClosing(rawUnscrubbed);
+        var scrubRemoved = bareLen(rawUnscrubbed) - bareLen(raw);
+
+        // 분량이 목표 최소치에 못 미치면, 같은 제목·사실관계를 유지한 채 더 길게 다시 쓰라고 최대 2번 재요청한다.
+        // (프롬프트 지시만으로는 모델이 짧게 끝내버리는 경우가 실제로 자주 있어서 추가한 안전장치)
+        var initialDraftLen = bareLen(raw);
+        var minLenNum = parseInt(v.minLen, 10) || 1600;
+        var maxLenNum = parseInt(v.maxLen, 10) || 1900;
+        var extendAttempts = 0;
+        var MAX_EXTEND_ATTEMPTS = 2;
+        while(bareLen(raw) < minLenNum && extendAttempts < MAX_EXTEND_ATTEMPTS){
+          extendAttempts++;
+          if(opts.onStatus) opts.onStatus("분량 보정 중 (" + extendAttempts + "/" + MAX_EXTEND_ATTEMPTS + ")");
+          updateWorkStatus(workRow, "running", shortLabel + " · 분량 보정 재시도 " + extendAttempts + "/" + MAX_EXTEND_ATTEMPTS);
+          try{
+            var retryPrompt = buildRiarRetryPrompt(prompt, raw, bareLen(raw), minLenNum, maxLenNum);
+            var res2 = await fetch("/api/write", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: retryPrompt })
+            });
+            var data2 = await res2.json();
+            if(!res2.ok || data2.error || !data2.text){ break; }
+            var raw2 = stripSelfClosing(String(data2.text || "").trim());
+            if(bareLen(raw2) > bareLen(raw)){ raw = raw2; }
+          }catch(e){
+            break;
+          }
+        }
+
+        var full;
+        if(opts.skipDisclosure){
+          // 교육/내부 자료용 — 광고 표시 문구·구매링크를 붙이지 않는다.
+          full = raw;
+        } else {
+          // 구매링크는 선택 입력이라, 비어 있으면 광고 표시 문구만 붙이고 구매링크 문장은 생략한다.
+          var closingParts = [];
+          if(opts.link){
+            closingParts.push("구매는 " + opts.link + "에서 하실 수 있어요.");
+          }
+          closingParts.push("*[체험 후기] 본 게시글은 제품을 제공받아 작성되었습니다.*");
+          full = raw + "\n\n" + closingParts.join("\n\n");
+        }
+
+        addPostToManage("[리아르] " + (firstKeywordLabel || keywords), full);
+        markKeywordDoneInBank(firstKeywordLabel || keywords, intent);
+        var doneDetail = shortLabel + (opts.skipDisclosure ? " (표시 생략)" : "") + (v.related ? (" · 연관: " + v.related) : "") +
+          (extendAttempts > 0 ? (" · 분량 보정 " + extendAttempts + "회") : "");
+        updateWorkStatus(workRow, "done", doneDetail);
+        return {
+          ok: true, text: full, skipDisclosure: !!opts.skipDisclosure, extendAttempts: extendAttempts,
+          scrubRemoved: scrubRemoved, initialDraftLen: initialDraftLen, finalDraftLen: bareLen(raw)
+        };
+      }catch(e){
+        var netMsg = "네트워크 오류: " + String(e.message || e);
+        updateWorkStatus(workRow, "fail", netMsg);
+        return { ok: false, message: netMsg };
+      }
+    }
+
+    // 키워드 입력창은 한 줄 = 원고 한 건이다. 1줄만 쓰면 1건, 여러 줄이면 그 줄 수만큼 순서대로 전부 생성한다.
+    // 매번 위쪽 조건(트리거·페르소나·이모티콘 톤·글자수·구매링크·비고)을 다시 채울 필요 없이, 그 값들은
+    // 모든 줄에 공통으로 적용된다. 줄 형식은 "키워드 | 검색의도" (검색의도는 생략 가능, 생략하면 위의
+    // "기본 검색의도" 필드 값을 쓴다).
+    var batchStatusEl = $("riar-batch-status");
+    var batchProgressEl = $("riar-batch-progress");
+
+    function parseRiarBatch(text){
+      return text.split("\n")
+        .map(function(line){ return line.trim(); })
+        .filter(function(line){ return line.length > 0; })
+        .map(function(line){
+          var parts = line.split("|");
+          return {
+            keyword: (parts[0] || "").trim(),
+            intent: (parts[1] || "").trim(),
+            related: (parts[2] || "").trim()
+          };
+        })
+        .filter(function(row){ return row.keyword; });
+    }
+
+    // 키워드만 넣으면 연관 키워드는 네이버 자동완성에서 서버(/api/related-keywords)가 대신 가져온다.
+    // 사용자가 직접 "키워드 | 검색의도 | 연관키워드"로 넣어둔 게 있으면 그건 그대로 존중하고 건드리지 않는다.
+    // 실패해도(네이버 쪽 응답이 없거나 형식이 바뀌었거나) 조용히 빈 값으로 넘어가고, 원고 생성 자체는 막지 않는다.
+    async function fetchRelatedKeywords(keyword){
+      try{
+        var res = await fetch("/api/related-keywords?q=" + encodeURIComponent(keyword));
+        if(!res.ok) return [];
+        var data = await res.json();
+        return Array.isArray(data.related) ? data.related : [];
+      }catch(e){
+        return [];
+      }
+    }
+
+    genBtn.addEventListener("click", async function(){
+      var rows = parseRiarBatch($("riar-keywords").value);
+      var link = $("riar-link").value.trim();
+      var skipDisclosure = $("riar-no-disclosure").checked;
+      var defaultIntent = $("riar-intent").value.trim();
+      if(rows.length === 0){ showToast("키워드/주제를 한 줄 이상 입력해주세요"); $("riar-keywords").focus(); return; }
+
+      var opts = {
+        trigger: $("riar-trigger").value,
+        persona: $("riar-persona").value.trim() || "30대 초반, 미혼 사무직 / 담백 존댓말",
+        emojiTone: $("riar-emoji-tone").value,
+        minLen: parseInt($("riar-minlen").value, 10) || 1600,
+        maxLen: parseInt($("riar-maxlen").value, 10) || 1900,
+        note: $("riar-note").value.trim(),
+        link: link,
+        skipDisclosure: skipDisclosure
+      };
+
+      genBtn.disabled = true; copyBtn.disabled = true;
+      outEl.textContent = "생성 중...";
+      setCharCount("");
+      checksEl.innerHTML = "";
+      batchStatusEl.innerHTML = "";
+      batchProgressEl.textContent = "";
+
+      // 1건일 때는 상태 목록을 따로 보여주지 않고, 여러 건일 때만 줄마다 진행 상태를 보여준다.
+      var showStatusList = rows.length > 1;
+      var statusRows = showStatusList ? rows.map(function(row, i){
+        var el = document.createElement("div");
+        el.className = "worklog-row";
+        el.innerHTML = "<div class='row-head'><span class='row-title'>" + (i + 1) + ". " + escapeHtml(row.keyword) + "</span><span class='badge running'>대기</span></div>";
+        batchStatusEl.appendChild(el);
+        return el;
+      }) : null;
+
+      var doneCount = 0, failCount = 0;
+      for(var i = 0; i < rows.length; i++){
+        if(showStatusList){
+          var badge = statusRows[i].querySelector(".badge");
+          batchProgressEl.textContent = "(" + (i + 1) + " / " + rows.length + " 진행 중)";
+        }
+
+        // 사용자가 직접 연관 키워드를 안 적었으면, 생성 직전에 자동으로 조회해서 채운다(수동 타이핑 불필요).
+        if(!rows[i].related){
+          if(showStatusList){ badge.className = "badge running"; badge.textContent = "연관 키워드 조회 중"; }
+          var fetchedRelated = await fetchRelatedKeywords(rows[i].keyword);
+          if(fetchedRelated.length > 0){ rows[i].related = fetchedRelated.join(", "); }
+        }
+
+        if(showStatusList){
+          badge.className = "badge running";
+          badge.textContent = "생성 중";
+        }
+
+        opts.onStatus = function(statusText){
+          if(showStatusList){ badge.className = "badge running"; badge.textContent = statusText; }
+          else { outEl.textContent = statusText; }
+        };
+
+        var result = await generateOneRiarPost(rows[i].keyword, rows[i].intent || defaultIntent, rows[i].related, opts);
+
+        if(result.ok){
+          doneCount++;
+          outEl.textContent = result.text;
+          setCharCount(result.text);
+          runComplianceChecks(result.text, result.skipDisclosure);
+
+          // 이미지 매니저의 "이 글 내보내기"가 naver-publisher 스크립트용 post.txt를 만들 때 쓸 수 있도록,
+          // 가장 최근에 생성된 리아르 원고를 기억해둔다.
+          window.__lastRiarPost = {
+            keyword: rows[i].keyword,
+            text: result.text,
+            generatedAt: Date.now()
+          };
+
+          // 재시도가 있었든 없었든 항상 진단 정보를 보여준다 — 개발자도구 없이도 재시도가 실제로
+          // 발동됐는지, 자동 정리(모델의 자기 마무리 문구 제거) 과정에서 글자가 많이 잘렸는지 바로 보이게.
+          var diag = document.createElement("div");
+          diag.className = "card";
+          diag.style.padding = "10px 14px";
+          diag.style.borderColor = result.extendAttempts > 0 ? "var(--accent)" : "var(--border)";
+          var diagMsg = "1차 초안(자동 정리 후) " + result.initialDraftLen + "자";
+          if(result.extendAttempts > 0){
+            diagMsg += " → 분량 부족으로 " + result.extendAttempts + "회 재요청 → 최종 " + result.finalDraftLen + "자";
+          } else {
+            diagMsg += " (1차부터 목표 충족 — 재요청 없음)";
+          }
+          if(result.scrubRemoved > 100){
+            diagMsg += " · ⚠️ 모델이 본문 중간에 마무리 문구 비슷한 걸 써서 자동 정리 과정에서 " + result.scrubRemoved + "자가 잘려나갔어요. 원인일 수 있으니 원본을 확인해보세요.";
+          }
+          diag.innerHTML = "<span style='font-weight:700; color:" + (result.extendAttempts > 0 ? "var(--accent)" : "var(--text-muted)") + ";'>생성 진단</span> <span class='hint'>" + escapeHtml(diagMsg) + "</span>";
+          checksEl.appendChild(diag);
+
+          if(result.extendAttempts > 0){
+            var extNote = document.createElement("div");
+            extNote.className = "card";
+            extNote.style.padding = "10px 14px";
+            extNote.style.borderColor = "var(--accent)";
+            extNote.innerHTML = "<span style='font-weight:700; color:var(--accent);'>분량 자동 보정</span> <span class='hint'>초안이 목표 분량보다 짧아서 " + result.extendAttempts + "회 더 길게 다시 써달라고 자동 재요청했어요.</span>";
+            checksEl.appendChild(extNote);
+          }
+
+          // 소제목은 "▶ " 로만 표시되어 나온다 (마크다운 **는 네이버 에디터에 그대로 별표로 보여서 쓰지 않음).
+          // 이 툴은 네이버 에디터 화면을 직접 조작할 수 없어서 인용구 버튼을 자동으로 눌러줄 수는 없고,
+          // 어떤 줄을 인용구로 바꿔야 하는지 사용자가 바로 찾을 수 있도록 매번 안내만 띄워준다.
+          var subheadCount = (result.text.match(/^▶ .+$/gm) || []).length;
+          if(subheadCount > 0){
+            var quoteNote = document.createElement("div");
+            quoteNote.className = "card";
+            quoteNote.style.padding = "10px 14px";
+            quoteNote.style.borderColor = "var(--border)";
+            quoteNote.innerHTML = "<span style='font-weight:700;'>블로그 발행 시 인용구 처리</span> <span class='hint'>\"▶ \"로 표시된 소제목이 " + subheadCount + "개 있어요. 네이버 에디터에 붙여넣은 뒤, 그 줄들을 하나씩 드래그해서 상단 \"인용구\" 버튼을 누르고 \"▶ \" 기호는 지워주세요. 이 툴에서 인용구 버튼을 대신 눌러줄 수는 없어서, 표시만 해두고 마지막 적용은 직접 해주셔야 해요.</span>";
+            checksEl.appendChild(quoteNote);
+          }
+          if(showStatusList){
+            statusRows[i].querySelector(".badge").className = "badge done";
+            statusRows[i].querySelector(".badge").textContent = "완료";
+          }
+        } else {
+          failCount++;
+          if(!showStatusList){
+            outEl.textContent = "생성 실패: " + result.message;
+          } else {
+            statusRows[i].querySelector(".badge").className = "badge fail";
+            statusRows[i].querySelector(".badge").textContent = "실패";
+            var errP = document.createElement("p");
+            errP.className = "row-detail";
+            errP.textContent = result.message || "";
+            statusRows[i].appendChild(errP);
+          }
+        }
+
+        // 여러 건일 때는 API 과호출을 피하려고 다음 항목 전에 살짝 쉰다.
+        if(i < rows.length - 1){
+          await new Promise(function(resolve){ setTimeout(resolve, 1200); });
+        }
+      }
+
+      if(rows.length === 1){
+        showToast(doneCount ? ("원고 생성 완료" + (opts.skipDisclosure ? " (광고 표시 생략)" : "")) : "생성 중 문제가 발생했어요");
+      } else {
+        batchProgressEl.textContent = "완료 " + doneCount + "건 · 실패 " + failCount + "건";
+        showToast("일괄 생성 완료: " + doneCount + "건 성공");
+      }
+
+      genBtn.disabled = false; copyBtn.disabled = false;
     });
 
     copyBtn.addEventListener("click", function(){ copyText(outEl.textContent); });
@@ -1134,13 +3229,15 @@
     if(!btn) return;
     btn.addEventListener("click", async function(){
       try{ await fetch("/api/logout", { method: "POST" }); }catch(e){}
-      location.href = "/login.html";
+      location.href = "/login";
     });
   })();
 
   // ---------- API 연결 상태 확인 ----------
   (function(){
     var warnEl = $("api-warning");
+    var pillEl = $("status-pill");
+    var pillTextEl = $("status-pill-text");
     fetch("/api/health").then(function(r){ return r.json(); }).then(function(data){
       if(!data || !data.anthropic || !data.openai || !data.sitePassword){
         var missing = [];
@@ -1149,12 +3246,18 @@
         if(!data || !data.sitePassword) missing.push("SITE_PASSWORD");
         warnEl.textContent = "다음 API 키가 아직 설정되지 않았어요: " + missing.join(", ") + ". Cloudflare Pages 프로젝트 설정 → Settings → Environment variables에서 추가한 뒤 다시 배포해주세요.";
         warnEl.hidden = false;
+        pillEl.className = "status-pill err";
+        pillTextEl.textContent = "API 연결 필요";
       } else {
         warnEl.hidden = true;
+        pillEl.className = "status-pill ok";
+        pillTextEl.textContent = "정상 연결됨";
       }
     }).catch(function(){
       warnEl.textContent = "API 서버 상태를 확인할 수 없어요. Cloudflare Pages에 배포된 상태에서 접속하고 있는지 확인해주세요 (로컬 파일을 직접 열면 동작하지 않습니다).";
       warnEl.hidden = false;
+      pillEl.className = "status-pill err";
+      pillTextEl.textContent = "연결 확인 실패";
     });
   })();
 
