@@ -1,5 +1,6 @@
 // POST /api/image
-// multipart/form-data: prompt (string), size (string, e.g. "1024x1024"), image (0+ files, reference images)
+// multipart/form-data: prompt (string), size (string, e.g. "1024x1024"), image (0+ files, reference images),
+//                       mask (optional 1 file, PNG with alpha — transparent=edit, opaque=preserve; requires exactly 1 image)
 // returns: { image_base64 } on success, or { error, message } on failure
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -25,6 +26,15 @@ export async function onRequestPost(context) {
 
   const size = String(form.get("size") || "1024x1024");
   const refImages = form.getAll("image").filter((v) => v && typeof v !== "string");
+  const maskFile = form.get("mask");
+  const hasMask = maskFile && typeof maskFile !== "string";
+
+  if (hasMask && refImages.length !== 1) {
+    return json(
+      { error: "invalid_mask_usage", message: "mask를 사용할 때는 image가 정확히 1장이어야 합니다." },
+      400
+    );
+  }
 
   try {
     let res;
@@ -36,6 +46,9 @@ export async function onRequestPost(context) {
       upstream.append("size", size);
       for (const f of refImages) {
         upstream.append("image[]", f, f.name || "reference.png");
+      }
+      if (hasMask) {
+        upstream.append("mask", maskFile, maskFile.name || "mask.png");
       }
       res = await fetch("https://api.openai.com/v1/images/edits", {
         method: "POST",
