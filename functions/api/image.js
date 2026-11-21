@@ -41,7 +41,7 @@ export async function onRequestPost(context) {
 
     if (refImages.length > 0) {
       const upstream = new FormData();
-      upstream.append("model", "gpt-image-1");
+      upstream.append("model", "gpt-image-2");
       upstream.append("prompt", prompt);
       upstream.append("size", size);
       for (const f of refImages) {
@@ -62,7 +62,7 @@ export async function onRequestPost(context) {
           Authorization: `Bearer ${env.OPENAI_API_KEY}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ model: "gpt-image-1", prompt, size }),
+        body: JSON.stringify({ model: "gpt-image-2", prompt, size }),
       });
     }
 
